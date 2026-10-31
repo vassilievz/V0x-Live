@@ -37,6 +37,7 @@ type Props = {
   roomId: string;
   roomName: string;
   passwordRequired: boolean;
+  inviteCodeRequired?: boolean;
   hasSession: boolean;
   sessionUser?: AuthUser;
   onJoined: (data: JoinRoomResponse) => void;
@@ -46,6 +47,7 @@ export function RoomAccessGate({
   roomId,
   roomName,
   passwordRequired,
+  inviteCodeRequired = false,
   hasSession,
   sessionUser,
   onJoined,
@@ -54,6 +56,7 @@ export function RoomAccessGate({
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const sessionName = sessionUser?.display_name ?? "";
@@ -88,7 +91,9 @@ export function RoomAccessGate({
         throw new Error(t("room.gateNameMin"));
       }
 
-      return roomsApi.join(roomId, passwordRequired ? password : undefined);
+      return inviteCodeRequired
+        ? roomsApi.joinByCode(inviteCode.trim(), passwordRequired ? password : undefined)
+        : roomsApi.join(roomId, passwordRequired ? password : undefined);
     },
     onSuccess: (data) => onJoined(data),
     onError: (err) =>
@@ -124,7 +129,9 @@ export function RoomAccessGate({
             <span className="text-xs">{t("room.gateKicker")}</span>
           </div>
           <h1 className={cn(homeSectionTitle, "break-words")}>{roomName}</h1>
-          <p className="mt-4 max-w-xl text-[0.9375rem] leading-[1.65] text-muted">{leadText}</p>
+          <p className="mt-4 max-w-xl text-[0.9375rem] leading-[1.65] text-muted">
+            {inviteCodeRequired ? t("room.gateLeadPrivateInvite") : leadText}
+          </p>
           <form
             className={cn(authForm, siteRoomGateForm)}
             onSubmit={(e) => {
@@ -147,6 +154,19 @@ export function RoomAccessGate({
                 />
               </div>
             ) : null}
+            {inviteCodeRequired ? (
+              <div className={fieldGroup}>
+                <label htmlFor="room-invite-code">{t("dashboard.inviteCodeLabel")}</label>
+                <Input
+                  id="room-invite-code"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value)}
+                  autoComplete="off"
+                  required
+                  placeholder={t("dashboard.inviteCodePlaceholder")}
+                />
+              </div>
+            ) : null}
             {passwordRequired ? (
               <div className={fieldGroup}>
                 <label htmlFor="room-password">{t("room.gatePasswordLabel")}</label>
@@ -165,7 +185,7 @@ export function RoomAccessGate({
                 {error}
               </p>
             ) : null}
-            <Button type="submit" disabled={enter.isPending}>
+            <Button type="submit" disabled={enter.isPending || (inviteCodeRequired && !inviteCode.trim())}>
               {enter.isPending ? t("room.gateJoinPending") : t("room.gateJoin")}
               <ArrowUpRight size={18} aria-hidden="true" />
             </Button>

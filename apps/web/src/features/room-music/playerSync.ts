@@ -5,6 +5,9 @@ import { expectedPositionSec } from "@/features/room-music/sync";
 export function transportSyncToken(state: RoomMusicState): string {
   const pos = Math.floor(expectedPositionSec(state));
   return [
+    state.platform ?? "",
+    state.source_url ?? "",
+    state.media_type ?? "",
     state.video_id ?? "",
     state.playlist_id ?? "",
     state.playing ? "1" : "0",

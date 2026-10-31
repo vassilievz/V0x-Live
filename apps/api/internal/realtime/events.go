@@ -25,4 +25,5 @@ const (
 	EventScreenStarted       = "participant.screen_started"
 	EventScreenStopped       = "participant.screen_stopped"
 	EventRoomMusicUpdated    = "room.music.updated"
+	EventRoomCineUpdated     = "room.cine.updated"
 )

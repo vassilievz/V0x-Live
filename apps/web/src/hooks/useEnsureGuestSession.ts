@@ -36,16 +36,7 @@ export function useEnsureGuestSession() {
         return;
       }
       if (session.isSuccess && session.data?.is_guest) {
-        let active = true;
-        setGuestPending(true);
-        void ensureGuestSession(queryClient).finally(() => {
-          if (active) {
-            setGuestPending(false);
-          }
-        });
-        return () => {
-          active = false;
-        };
+        return;
       }
       if (!session.isError) {
         return;

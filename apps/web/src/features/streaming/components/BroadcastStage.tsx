@@ -18,9 +18,12 @@ import {
 import { Track } from "livekit-client";
 import { BroadcastSettingsProvider } from "@/features/streaming/BroadcastSettingsContext";
 import { BroadcastControlBar } from "@/features/streaming/components/BroadcastControlBar";
-import {
-  STAGE_IDLE_ART,
-} from "@/features/streaming/stageIdleMedia";
+import { STAGE_IDLE_ART } from "@/features/streaming/stageIdleMedia";
+import { useRoomDirectVideo } from "@/features/room-music/RoomDirectVideoContext";
+import { RoomDirectVideoStage } from "@/features/room-music/components/RoomDirectVideoStage";
+import { useRoomCine } from "@/features/room-cine/RoomCineContext";
+import { RoomCineStage } from "@/features/room-cine/components/RoomCineStage";
+import { cineStageReady } from "@/features/room-cine/cineStageReady";
 
 function isLiveTrackRef(ref: TrackReferenceOrPlaceholder | undefined): boolean {
   return !!ref && isTrackReference(ref) && ref.publication.track != null;
@@ -50,8 +53,10 @@ function pickHeroTrack(
   return live.find((t) => t.publication.source === Track.Source.Camera);
 }
 
-export function BroadcastStage() {
+export function BroadcastStage({ roomId, viewerRole }: { roomId?: string; viewerRole?: string | null }) {
   const { t } = useTranslation();
+  const directVideo = useRoomDirectVideo();
+  const roomCine = useRoomCine();
   const layoutContext = useCreateLayoutContext();
   const lastScreenShare = useRef<TrackReferenceOrPlaceholder | null>(null);
 
@@ -68,6 +73,10 @@ export function BroadcastStage() {
   const pinnedLive =
     pinned && isLiveTrackRef(pinned) && isTrackReference(pinned) ? pinned : undefined;
   const mainTrack = pinnedLive ?? heroTrack;
+  const hasLiveVideo = Boolean(mainTrack && isTrackReference(mainTrack));
+  const showCine = cineStageReady(roomCine?.state) && !hasLiveVideo;
+  const showDirectWatchParty =
+    Boolean(directVideo?.isDirectActive) && !showCine && !hasLiveVideo;
 
   const stripTracks = tracks.filter(
     (t) => !mainTrack || !sameTrackRef(t, mainTrack),
@@ -112,7 +121,11 @@ export function BroadcastStage() {
       <LayoutContextProvider value={layoutContext}>
         <div className="broadcast-stage">
           <div className="broadcast-stage-viewport">
-              {mainTrack && isTrackReference(mainTrack) ? (
+              {showCine ? (
+                <RoomCineStage />
+              ) : showDirectWatchParty ? (
+                <RoomDirectVideoStage />
+              ) : mainTrack && isTrackReference(mainTrack) ? (
                 <FocusLayoutContainer>
                   {stripTracks.length > 0 ? (
                     <CarouselLayout tracks={stripTracks}>
@@ -154,7 +167,7 @@ export function BroadcastStage() {
               )}
           </div>
 
-          <BroadcastControlBar />
+          <BroadcastControlBar roomId={roomId} viewerRole={viewerRole} />
           <StartAudio label={t("broadcast.startAudioLabel")} />
           <RoomAudioRenderer />
         </div>

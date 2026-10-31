@@ -113,15 +113,20 @@ export const roomParticipantEmpty =
   "px-3 py-6 text-center text-[13px] text-muted";
 
 export const roomMusicDialogBackdrop =
-  "fixed inset-0 z-[60] grid place-items-center bg-[rgb(0_0_0/80%)] p-[var(--gutter)]";
+  "fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-[rgb(0_0_0/82%)] p-3 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:items-center sm:p-[var(--gutter)] sm:pb-[var(--gutter)]";
 export const roomMusicDialog =
-  "m-0 max-h-[min(92dvh,720px)] w-full max-w-[480px] overflow-auto";
+  "room-music-dialog m-0 w-full max-w-[480px] max-h-[min(88dvh,720px)] overflow-y-auto overscroll-contain scroll-pt-4 rounded-t-[20px] rounded-b-none sm:max-h-[min(92dvh,720px)] sm:rounded-lg sm:shadow-none shadow-[0_-24px_80px_rgb(0_0_0/55%)]";
+export const roomMusicDialogVisibility =
+  "grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3";
 export const roomMusicDialogHead =
   "mb-1 flex items-center justify-between gap-3";
 export const roomMusicDialogTitle =
   "flex items-center gap-2.5 text-[1.0625rem] font-semibold leading-[1.35] tracking-[-0.02em] text-foreground";
 export const roomMusicDialogClose =
   "inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted transition-[color,background-color,border-color] duration-[180ms] hover:border-muted hover:bg-surface-muted hover:text-foreground";
+
+export const roomCineDialog =
+  "room-music-dialog room-cine-dialog m-0 w-full max-w-[min(100%,56rem)] max-h-[min(88dvh,820px)] overflow-y-auto overscroll-contain scroll-pt-4 rounded-t-[20px] rounded-b-none sm:max-h-[min(92dvh,820px)] sm:rounded-lg sm:shadow-none shadow-[0_-24px_80px_rgb(0_0_0/55%)]";
 
 export const roomMusicPlayer =
   "relative border-t border-border bg-background px-[var(--bento-pad-x)] py-3.5";
@@ -147,5 +152,14 @@ export const roomMusicPlayBtn =
 export const roomMusicVolume =
   "flex min-w-[120px] flex-1 items-center gap-2 text-muted [&_input]:w-full [&_input]:accent-foreground";
 export const roomMusicPlayerFoot = "mt-2.5 text-[11px] text-muted";
+export const roomMusicPlayerDirect = "mb-3 grid gap-2.5";
+export const roomMusicPlayerVideo =
+  "aspect-video w-full rounded-lg border border-border bg-black object-contain";
+export const roomMusicSyncBtn =
+  "w-fit rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground transition-[border-color,background-color] duration-[180ms] hover:border-foreground";
 export const roomMusicPlayerFrame =
   "room-music-player-frame absolute size-px overflow-hidden [clip:rect(0,0,0,0)]";
+
+export const broadcastStageDirectShell =
+  "broadcast-stage-direct absolute inset-0 overflow-hidden bg-black";
+export const broadcastStageDirectVideo = "broadcast-stage-direct-video";

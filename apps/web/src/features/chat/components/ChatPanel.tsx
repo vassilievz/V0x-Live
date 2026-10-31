@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { MessageSquare, Music2, Send } from "lucide-react";
+import { MessageSquare, Send } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { Button, Input } from "@v0xlive/ui";
 import type { ChatMessage, RealtimeEvent } from "@v0xlive/api-client";
 import { roomsApi } from "@/lib/api";
-import { RoomMusicAddDialog } from "@/features/room-music/components/RoomMusicAddDialog";
 import { RoomMusicPlayer } from "@/features/room-music/components/RoomMusicPlayer";
 import { cn } from "@/lib/cn";
 import {
@@ -36,8 +35,6 @@ function isSystemMessage(msg: ChatMessage): boolean {
 
 export function ChatPanel({ roomId, lastEvent, viewerRole, embedded }: Props) {
   const [text, setText] = useState("");
-  const [musicOpen, setMusicOpen] = useState(false);
-  const [musicError, setMusicError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLLIElement>(null);
   const reduced = useReducedMotion();
   const queryClient = useQueryClient();
@@ -63,19 +60,6 @@ export function ChatPanel({ roomId, lastEvent, viewerRole, embedded }: Props) {
     onSuccess: () => {
       setText("");
       queryClient.invalidateQueries({ queryKey: ["chat", roomId] });
-    },
-  });
-
-  const addMusic = useMutation({
-    mutationFn: (body: { url: string; control_mode: "owner_only" | "everyone" }) =>
-      roomsApi.setMusic(roomId, body),
-    onSuccess: () => {
-      setMusicOpen(false);
-      setMusicError(null);
-      void queryClient.invalidateQueries({ queryKey: ["room-music", roomId] });
-    },
-    onError: (err: Error) => {
-      setMusicError(err.message);
     },
   });
 
@@ -109,7 +93,7 @@ export function ChatPanel({ roomId, lastEvent, viewerRole, embedded }: Props) {
         <li ref={bottomRef} aria-hidden="true" className="h-px list-none" />
       </ul>
 
-      <RoomMusicPlayer roomId={roomId} lastEvent={lastEvent} viewerRole={viewerRole} />
+      <RoomMusicPlayer viewerRole={viewerRole} />
 
       <form
         className={roomChatComposer}
@@ -118,19 +102,6 @@ export function ChatPanel({ roomId, lastEvent, viewerRole, embedded }: Props) {
           if (text.trim() && !send.isPending) send.mutate();
         }}
       >
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          className="shrink-0 px-3"
-          aria-label={t("chat.addMusic")}
-          onClick={() => {
-            setMusicError(null);
-            setMusicOpen(true);
-          }}
-        >
-          <Music2 className="size-4" aria-hidden="true" />
-        </Button>
         <Input
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -147,14 +118,6 @@ export function ChatPanel({ roomId, lastEvent, viewerRole, embedded }: Props) {
           <Send className="size-4" aria-hidden="true" />
         </Button>
       </form>
-
-      <RoomMusicAddDialog
-        open={musicOpen}
-        onClose={() => setMusicOpen(false)}
-        pending={addMusic.isPending}
-        error={musicError}
-        onSubmit={(payload) => addMusic.mutate(payload)}
-      />
     </div>
   );
 }

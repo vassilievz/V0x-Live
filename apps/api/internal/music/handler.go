@@ -43,6 +43,8 @@ func NewHandler(store *database.Store, roomSvc *rooms.Service, hub *realtime.Hub
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Get("/{roomID}/music/stream/resource", h.streamResource)
+	r.Get("/{roomID}/music/stream", h.stream)
 	r.Get("/{roomID}/music", h.get)
 	r.Post("/{roomID}/music", h.upsert)
 	r.Patch("/{roomID}/music", h.patch)
@@ -99,11 +101,28 @@ func (h *Handler) upsert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	target, valid := ParseYouTubeURL(req.URL)
-	if !valid {
-		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Link do YouTube inválido")
+	if valid {
+		h.upsertYouTube(w, r, sess, roomID, part, req, target)
 		return
 	}
 
+	direct, ok := ParseDirectMediaURL(req.URL)
+	if !ok {
+		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Link inválido. Use YouTube ou HTTPS .mp4 / .m3u8")
+		return
+	}
+	h.upsertDirect(w, r, sess, roomID, part, req, direct)
+}
+
+func (h *Handler) upsertYouTube(
+	w http.ResponseWriter,
+	r *http.Request,
+	sess session.Session,
+	roomID primitive.ObjectID,
+	part *models.RoomParticipant,
+	req upsertRequest,
+	target YouTubeTarget,
+) {
 	mode := strings.TrimSpace(req.ControlMode)
 	if mode != controlEveryone {
 		mode = controlOwnerOnly
@@ -176,6 +195,68 @@ func (h *Handler) upsert(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusCreated, h.toPayload(saved, true, part))
 }
 
+func (h *Handler) upsertDirect(
+	w http.ResponseWriter,
+	r *http.Request,
+	sess session.Session,
+	roomID primitive.ObjectID,
+	part *models.RoomParticipant,
+	req upsertRequest,
+	target DirectMediaTarget,
+) {
+	mode := strings.TrimSpace(req.ControlMode)
+	if mode != controlEveryone {
+		mode = controlOwnerOnly
+	}
+
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		title = directMediaTitleFromPath(target.SourceURL)
+	}
+	if len(title) > 200 {
+		title = title[:200]
+	}
+
+	now := time.Now().UTC()
+	doc := models.RoomMusic{
+		RoomID:              roomID,
+		Platform:            "direct",
+		MediaType:           target.MediaType,
+		SourceURL:           target.SourceURL,
+		Title:               title,
+		ControlMode:         mode,
+		ControllerSessionID: sess.ID,
+		AddedByName:         part.DisplayName,
+		Playing:             true,
+		PositionSec:         0,
+		StateAt:             now,
+		UpdatedAt:           now,
+	}
+
+	_, err := h.music.UpdateOne(
+		r.Context(),
+		bson.M{"room_id": roomID},
+		bson.M{"$set": doc},
+		options.Update().SetUpsert(true),
+	)
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "server_error", "Erro ao salvar vídeo")
+		return
+	}
+
+	saved, err := h.findByRoom(r.Context(), roomID)
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "server_error", "Erro ao carregar vídeo")
+		return
+	}
+
+	payload := h.toPayload(saved, true, part)
+	h.hub.Publish(r.Context(), roomID.Hex(), realtime.EventRoomMusicUpdated, payload)
+	h.postSystemMessage(r.Context(), roomID, part.DisplayName+" adicionou um vídeo direto (.mp4/.m3u8) à sala.")
+
+	httpx.WriteJSON(w, http.StatusCreated, payload)
+}
+
 func (h *Handler) patch(w http.ResponseWriter, r *http.Request) {
 	_, roomID, part, ok := h.roomParticipant(w, r)
 	if !ok {
@@ -226,6 +307,10 @@ func (h *Handler) patch(w http.ResponseWriter, r *http.Request) {
 		doc.PositionSec = req.PositionSec
 		doc.StateAt = now
 	case "sync_track":
+		if doc.Platform == "direct" {
+			httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Ação não suportada para vídeo direto")
+			return
+		}
 		videoID := strings.TrimSpace(req.VideoID)
 		if videoID == "" {
 			httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Vídeo inválido")
@@ -368,6 +453,9 @@ func (h *Handler) findByRoom(ctx context.Context, roomID primitive.ObjectID) (*m
 }
 
 func (h *Handler) enrichMetadata(ctx context.Context, doc *models.RoomMusic) *models.RoomMusic {
+	if doc.Platform == "direct" {
+		return doc
+	}
 	needsTitle := doc.Title == "" || doc.Title == "Vídeo do YouTube" || doc.Title == "Playlist do YouTube"
 	needsThumb := doc.ThumbnailURL == ""
 	needsAuthor := doc.AuthorName == ""
@@ -415,6 +503,7 @@ func (h *Handler) toPayload(doc *models.RoomMusic, active bool, part *models.Roo
 	return map[string]any{
 		"active":                active,
 		"platform":              doc.Platform,
+		"media_type":            doc.MediaType,
 		"video_id":              doc.VideoID,
 		"playlist_id":           doc.PlaylistID,
 		"source_url":            doc.SourceURL,

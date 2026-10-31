@@ -77,6 +77,7 @@ func (h *Handler) RegisterProtected(r chi.Router) {
 	r.Post("/", h.create)
 	r.Post("/join-by-code", h.joinByCode)
 	r.Get("/{roomID}", h.getRoom)
+	r.Get("/{roomID}/entry", h.entryRoom)
 	r.Post("/{roomID}/join", h.join)
 	r.Post("/{roomID}/leave", h.leave)
 	r.Delete("/{roomID}", h.closeRoom)
@@ -219,6 +220,39 @@ func (h *Handler) previewRoom(w http.ResponseWriter, r *http.Request) {
 		"description":       room.Description,
 		"visibility":        room.Visibility,
 		"password_required": room.PasswordHash != "",
+	})
+}
+
+func (h *Handler) entryRoom(w http.ResponseWriter, r *http.Request) {
+	sess, ok := auth.SessionFromContext(r.Context())
+	if !ok {
+		writeUnauthorized(w)
+		return
+	}
+	roomID, err := parseRoomID(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "ID inválido")
+		return
+	}
+	room, err := h.svc.GetByID(r.Context(), roomID)
+	if err != nil {
+		writeRoomErr(w, err)
+		return
+	}
+	_, partErr := h.svc.ActiveParticipant(r.Context(), roomID.Hex(), sess.ID)
+	canResume, isHost := h.svc.RoomEntryFlags(r.Context(), room, sess)
+	if partErr == nil {
+		canResume = true
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
+		"id":                  room.ID.Hex(),
+		"name":                room.Name,
+		"description":         room.Description,
+		"visibility":          room.Visibility,
+		"password_required":   room.PasswordHash != "",
+		"direct_join_allowed": CanDirectJoin(room),
+		"can_resume":          canResume,
+		"is_host":             isHost,
 	})
 }
 

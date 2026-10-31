@@ -10,7 +10,7 @@ Enforcement central: `apps/api/internal/server/server.go`.
 | API4 Consumo | Rate limit global; limite JSON 1 MiB |
 | API5 BFLA | Host-only close/patch permissions |
 | API6 Fluxos | Guest barato — monitorar abuse |
-| API7 SSRF | oEmbed só URLs YouTube canonicalizadas |
+| API7 SSRF | oEmbed só URLs YouTube; vídeo direto (.mp4/.m3u8) validado em HTTPS sem fetch server-side |
 | API8 Misconfig | CORS allowlist; headers segurança |
 | API9 Inventário | OpenAPI parcialmente desatualizado |
 | API10 Consumo externo | Google userinfo limitado 1 MiB |

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Wifi, WifiOff } from "lucide-react";
@@ -13,6 +13,8 @@ import { ensureGuestSession, syncSessionUser } from "@/lib/guestSession";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
 import { LiveKitStage } from "@/features/streaming/components/LiveKitStage";
+import { RoomDirectVideoProvider } from "@/features/room-music/RoomDirectVideoContext";
+import { RoomCineProvider } from "@/features/room-cine/RoomCineContext";
 import { ChatPanel } from "@/features/chat/components/ChatPanel";
 import { RoomAccessGate } from "@/features/rooms/components/RoomAccessGate";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
@@ -20,6 +22,10 @@ import {
   ParticipantsPanel,
 } from "@/features/participants/components/ParticipantsPanel";
 import { RoomStageShell } from "@/features/rooms/components/RoomStageShell";
+import {
+  mayAutoJoinFromEntry,
+  needsRoomInviteGate,
+} from "@/features/rooms/roomEntryPolicy";
 import {
   actionLink,
   actionLinkPill,
@@ -29,11 +35,17 @@ import {
   roomStageAlert,
   roomStagePlaceholder,
   roomStagePlaceholderMuted,
+  roomAppRoot,
   sitePanel,
 } from "@/ui";
 
+type RoomLocationState = {
+  prejoin?: JoinRoomResponse;
+};
+
 export function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
@@ -42,15 +54,16 @@ export function RoomPage() {
   const [role, setRole] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const autoJoinDone = useRef(false);
-
-  const preview = useQuery({
-    queryKey: ["room-preview", roomId],
-    queryFn: () => roomsApi.preview(roomId!),
-    enabled: !!roomId,
-  });
+  const prejoinApplied = useRef(false);
 
   const session = useSessionUser();
   const { ensuring } = useEnsureGuestSession();
+
+  const preview = useQuery({
+    queryKey: ["room-preview", roomId],
+    queryFn: () => roomsApi.entry(roomId!),
+    enabled: !!roomId && session.isSuccess,
+  });
 
   const hasSession = session.isSuccess;
 
@@ -70,16 +83,43 @@ export function RoomPage() {
     },
   });
 
+  const { mutate: joinRoom, reset: resetJoin } = join;
+
+  useEffect(() => {
+    autoJoinDone.current = false;
+    prejoinApplied.current = false;
+    setJoined(false);
+    setRole(null);
+    resetJoin();
+  }, [roomId, resetJoin]);
+
+  useEffect(() => {
+    if (!roomId || joined || prejoinApplied.current) {
+      return;
+    }
+    const prejoin = (location.state as RoomLocationState | null)?.prejoin;
+    if (!prejoin?.role) {
+      return;
+    }
+    prejoinApplied.current = true;
+    autoJoinDone.current = true;
+    applyJoinSuccess(prejoin);
+    window.history.replaceState(null, "", location.pathname + location.search);
+  }, [roomId, joined, location.pathname, location.search, location.state]);
+
   useEffect(() => {
     if (!roomId || joined || join.isPending || autoJoinDone.current) {
       return;
     }
-    if (!session.isSuccess || !preview.data || preview.data.password_required) {
+    if (!session.isSuccess || !preview.data) {
+      return;
+    }
+    if (!mayAutoJoinFromEntry(preview.data)) {
       return;
     }
     autoJoinDone.current = true;
-    join.mutate(undefined);
-  }, [roomId, joined, session.isSuccess, preview.data, join]);
+    joinRoom(undefined);
+  }, [roomId, joined, session.isSuccess, preview.data, join.isPending, joinRoom]);
 
   const livekit = useQuery({
     queryKey: ["livekit", roomId],
@@ -135,11 +175,13 @@ export function RoomPage() {
 
   const roomName = preview.data?.name ?? t("room.defaultName");
   const waitingSession = session.isLoading || ensuring || preview.isLoading;
+  const needsInviteGate = preview.data ? needsRoomInviteGate(preview.data) : false;
+
   const showGate =
     !joined &&
     !join.isPending &&
     !waitingSession &&
-    (!hasSession || preview.data?.password_required === true);
+    (!hasSession || preview.data?.password_required === true || needsInviteGate);
 
   const showStage = joined || join.isPending || join.isError;
 
@@ -168,6 +210,7 @@ export function RoomPage() {
         roomId={roomId}
         roomName={roomName}
         passwordRequired={preview.data?.password_required ?? false}
+        inviteCodeRequired={needsInviteGate}
         hasSession={hasSession}
         sessionUser={session.data}
         onJoined={(data) => {
@@ -189,6 +232,9 @@ export function RoomPage() {
     queryClient.getQueryData<LiveKitTokenResponse>(["livekit", roomId]);
 
   return (
+    <div className={roomAppRoot}>
+    <RoomDirectVideoProvider roomId={roomId} lastEvent={lastEvent} viewerRole={role}>
+    <RoomCineProvider roomId={roomId} lastEvent={lastEvent}>
     <RoomStageShell
       roomName={roomName}
       connected={connected}
@@ -214,6 +260,7 @@ export function RoomPage() {
               roomId={roomId}
               token={livekitSession.token}
               serverUrl={livekitSession.url}
+              viewerRole={role}
             />
           ) : livekit.isError ? (
             <div className={roomStagePlaceholder} role="status">
@@ -247,5 +294,8 @@ export function RoomPage() {
         )
       }
     />
+    </RoomCineProvider>
+    </RoomDirectVideoProvider>
+    </div>
   );
 }

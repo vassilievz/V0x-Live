@@ -81,7 +81,7 @@ export function createHealthApi(client: ReturnType<typeof createApiClient>) {
   };
 }
 
-export { createAuthApi, createRoomsApi, DEFAULT_GUEST_DISPLAY_NAME, DEFAULT_GUEST_AVATAR_URL, resolveGuestAvatar, publicRoomCoverPath } from "./auth";
+export { createAuthApi, createRoomsApi, createCineApi, DEFAULT_GUEST_DISPLAY_NAME, DEFAULT_GUEST_AVATAR_URL, resolveGuestAvatar, publicRoomCoverPath, roomMusicStreamPath, roomCineStreamPath } from "./auth";
 export { createStatsApi, createPresenceApi } from "./stats";
 export type { OnlineStatsResponse } from "./stats";
 export type {
@@ -96,4 +96,13 @@ export type {
   RealtimeEvent,
   RoomMusicState,
   RoomMusicPatchBody,
+  RoomCineState,
+  RoomCineUpsertBody,
+  RoomCinePatchBody,
+  RoomEntryInfo,
+  CineCatalogItem,
+  CineCatalogResponse,
+  CineSeriesMeta,
+  CineSeriesSeason,
+  CineSeriesEpisode,
 } from "./auth";

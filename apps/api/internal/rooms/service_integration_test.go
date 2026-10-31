@@ -102,6 +102,27 @@ func TestIntegrationPrivateRoomBlocksDirectJoin(t *testing.T) {
 	}
 }
 
+func TestIntegrationPrivateRoomHostResumesJoinAfterCreate(t *testing.T) {
+	_, svc, sessions := setupIntegration(t)
+	host := guestSession(t, sessions, "Host")
+	room, err := svc.Create(context.Background(), host, CreateInput{
+		Name:            "Privada",
+		Visibility:      models.VisibilityPrivate,
+		MaxParticipants: 10,
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	part, err := svc.Join(context.Background(), room.ID, host, JoinInput{})
+	if err != nil {
+		t.Fatalf("Join as host after create: %v", err)
+	}
+	if part.Role != models.RoleHost {
+		t.Fatalf("role = %q want host", part.Role)
+	}
+}
+
 func TestIntegrationPrivateRoomJoinByInviteCode(t *testing.T) {
 	_, svc, sessions := setupIntegration(t)
 	host := guestSession(t, sessions, "Host")

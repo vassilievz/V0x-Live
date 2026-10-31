@@ -14,10 +14,11 @@ type Props = {
   token: string;
   serverUrl?: string;
   roomId?: string;
+  viewerRole?: string | null;
   onDisconnected?: () => void;
 };
 
-export function LiveKitStage({ token, serverUrl, roomId, onDisconnected }: Props) {
+export function LiveKitStage({ token, serverUrl, roomId, viewerRole, onDisconnected }: Props) {
   const url = serverUrl || getLiveKitUrl();
 
   return (
@@ -31,7 +32,7 @@ export function LiveKitStage({ token, serverUrl, roomId, onDisconnected }: Props
       onDisconnected={onDisconnected}
       className={cn("broadcast-room lk-room-container", roomStageBroadcast)}
     >
-      <BroadcastStage />
+      <BroadcastStage roomId={roomId} viewerRole={viewerRole} />
       {roomId ? (
         <>
           <ScreenShareSignals roomId={roomId} />

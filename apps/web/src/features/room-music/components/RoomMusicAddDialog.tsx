@@ -1,8 +1,9 @@
 import { useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Music2, X } from "lucide-react";
+import { MonitorPlay, X } from "lucide-react";
 import { Button, Input } from "@v0xlive/ui";
-import { parseYouTubeUrl } from "@/features/room-music/youtube";
+import { parseRoomMediaUrl } from "@/features/room-music/directMedia";
 import { cn } from "@/lib/cn";
 import {
   fieldError,
@@ -18,8 +19,8 @@ import {
   roomMusicDialogClose,
   roomMusicDialogHead,
   roomMusicDialogTitle,
+  roomMusicDialogVisibility,
   visibilityChoice,
-  visibilityOptions,
 } from "@/ui";
 
 type ControlMode = "owner_only" | "everyone";
@@ -52,14 +53,19 @@ export function RoomMusicAddDialog({
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [open, onClose]);
 
   if (!open) return null;
 
-  const valid = parseYouTubeUrl(url) != null;
+  const valid = parseRoomMediaUrl(url.trim()) != null;
 
-  return (
+  return createPortal(
     <div className={roomMusicDialogBackdrop} role="presentation" onMouseDown={onClose}>
       <div
         className={cn(roomMusicDialog, focusCard())}
@@ -69,7 +75,7 @@ export function RoomMusicAddDialog({
       >
         <div className={roomMusicDialogHead}>
           <h2 id="room-music-dialog-title" className={roomMusicDialogTitle}>
-            <Music2 className="size-[18px] text-muted" aria-hidden="true" />
+            <MonitorPlay className="size-[18px] text-muted" aria-hidden="true" />
             {t("music.dialogTitle")}
           </h2>
           <button
@@ -94,7 +100,7 @@ export function RoomMusicAddDialog({
 
           <fieldset className={fieldGroup}>
             <span className={fieldLabel}>{t("music.controlLegend")}</span>
-            <div className={visibilityOptions}>
+            <div className={roomMusicDialogVisibility}>
               <label className={visibilityChoice} htmlFor={ownerId}>
                 <input
                   id={ownerId}
@@ -154,6 +160,7 @@ export function RoomMusicAddDialog({
           </Button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

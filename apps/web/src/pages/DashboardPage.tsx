@@ -5,6 +5,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { DEFAULT_GUEST_DISPLAY_NAME } from "@v0xlive/api-client";
 import { ArrowUpRight, KeyRound } from "lucide-react";
 import { Button, Input } from "@v0xlive/ui";
+import type { JoinRoomResponse } from "@v0xlive/api-client";
 import { roomsApi, ApiError } from "@/lib/api";
 import { ensureGuestSession } from "@/lib/guestSession";
 import { useSessionUser } from "@/hooks/useSessionUser";
@@ -74,9 +75,18 @@ export function DashboardPage() {
 
   const createRoom = useMutation({
     mutationFn: () => roomsApi.create({ name: roomName.trim(), visibility }),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       void queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      navigate(`/room/${data.id}`);
+      let prejoin: JoinRoomResponse | undefined;
+      try {
+        prejoin = await roomsApi.join(data.id);
+        if (prejoin.livekit) {
+          queryClient.setQueryData(["livekit", data.id], prejoin.livekit);
+        }
+      } catch {
+        /* host row exists; join re-syncs session after create */
+      }
+      navigate(`/room/${data.id}`, prejoin ? { state: { prejoin } } : undefined);
     },
   });
   const joinByCode = useMutation({

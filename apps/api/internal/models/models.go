@@ -85,6 +85,7 @@ type RoomMusic struct {
 	ID                  primitive.ObjectID `bson:"_id,omitempty"`
 	RoomID              primitive.ObjectID `bson:"room_id"`
 	Platform            string             `bson:"platform"`
+	MediaType           string             `bson:"media_type,omitempty"`
 	VideoID             string             `bson:"video_id,omitempty"`
 	PlaylistID          string             `bson:"playlist_id,omitempty"`
 	SourceURL           string             `bson:"source_url"`
@@ -98,6 +99,26 @@ type RoomMusic struct {
 	PositionSec         float64            `bson:"position_sec"`
 	StateAt             time.Time          `bson:"state_at"`
 	UpdatedAt           time.Time          `bson:"updated_at"`
+}
+
+type RoomCine struct {
+	ID            primitive.ObjectID `bson:"_id,omitempty"`
+	RoomID        primitive.ObjectID `bson:"room_id"`
+	Mode          string             `bson:"mode"` // catalog | direct
+	ContentType   string             `bson:"content_type,omitempty"`
+	MediaID       string             `bson:"media_id,omitempty"`
+	Season        int                `bson:"season,omitempty"`
+	Episode       int                `bson:"episode,omitempty"`
+	EmbedURL      string             `bson:"embed_url,omitempty"`
+	SourceURL     string             `bson:"source_url,omitempty"`
+	MediaType     string             `bson:"media_type,omitempty"`
+	Title         string             `bson:"title,omitempty"`
+	HostSessionID primitive.ObjectID `bson:"host_session_id"`
+	HostName      string             `bson:"host_name"`
+	Playing       bool               `bson:"playing"`
+	PositionSec   float64            `bson:"position_sec"`
+	StateAt       time.Time          `bson:"state_at"`
+	UpdatedAt     time.Time          `bson:"updated_at"`
 }
 
 type PasswordReset struct {

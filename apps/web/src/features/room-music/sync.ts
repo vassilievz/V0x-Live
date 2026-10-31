@@ -1,6 +1,8 @@
 import type { RoomMusicState } from "@v0xlive/api-client";
 
-export function expectedPositionSec(state: RoomMusicState, nowMs = Date.now()): number {
+type TransportClock = Pick<RoomMusicState, "playing" | "state_at" | "position_sec">;
+
+export function expectedPositionSec(state: TransportClock, nowMs = Date.now()): number {
   if (!state.playing || !state.state_at) {
     return state.position_sec ?? 0;
   }

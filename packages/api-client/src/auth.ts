@@ -62,6 +62,7 @@ export type ChatMessage = {
 export type RoomMusicState = {
   active: boolean;
   platform?: string;
+  media_type?: "mp4" | "hls";
   video_id?: string;
   playlist_id?: string;
   source_url?: string;
@@ -86,6 +87,92 @@ export type RoomMusicPatchBody = {
   author_name?: string;
   thumbnail_url?: string;
   playing?: boolean;
+};
+
+export type RoomEntryInfo = {
+  id: string;
+  name: string;
+  description?: string;
+  visibility: string;
+  password_required: boolean;
+  direct_join_allowed?: boolean;
+  can_resume?: boolean;
+  is_host?: boolean;
+};
+
+export type RoomCineState = {
+  active: boolean;
+  mode?: "catalog" | "direct";
+  content_type?: "filme" | "serie" | "anime" | "dorama";
+  media_id?: string;
+  season?: number;
+  episode?: number;
+  embed_url?: string;
+  source_url?: string;
+  media_type?: "mp4" | "hls";
+  title?: string;
+  host_name?: string;
+  playing?: boolean;
+  position_sec?: number;
+  state_at?: string;
+  updated_at?: string;
+  is_host?: boolean;
+  can_control?: boolean;
+};
+
+export type RoomCineUpsertBody =
+  | {
+      mode: "catalog";
+      content_type: "filme" | "serie" | "anime" | "dorama";
+      media_id: string;
+      season?: number;
+      episode?: number;
+      title?: string;
+    }
+  | {
+      mode: "direct";
+      url: string;
+      title?: string;
+    };
+
+export type RoomCinePatchBody = {
+  action: "play" | "pause" | "seek" | "prev_episode" | "next_episode" | "set_episode";
+  position_sec?: number;
+  season?: number;
+  episode?: number;
+};
+
+export type CineCatalogItem = {
+  imdb_id?: string;
+  media_id: string;
+  title: string;
+  year?: number;
+  type: "filme" | "serie" | "anime" | "dorama";
+  poster?: string;
+  imdb_rating?: string;
+};
+
+export type CineCatalogResponse = {
+  items: CineCatalogItem[];
+};
+
+export type CineSeriesEpisode = {
+  episode: number;
+  title: string;
+  thumbnail?: string;
+};
+
+export type CineSeriesSeason = {
+  season: number;
+  episodes: CineSeriesEpisode[];
+};
+
+export type CineSeriesMeta = {
+  imdb_id: string;
+  media_id: string;
+  title: string;
+  poster?: string;
+  seasons: CineSeriesSeason[];
 };
 
 export type LiveKitTokenResponse = {
@@ -137,14 +224,10 @@ export function createRoomsApi(client: Client) {
         invite_code: string;
         password_required?: boolean;
       }>(`/api/v1/rooms/${id}`),
+    entry: (id: string) =>
+      client.get<RoomEntryInfo>(`/api/v1/rooms/${id}/entry`),
     preview: (id: string) =>
-      client.get<{
-        id: string;
-        name: string;
-        description?: string;
-        visibility: string;
-        password_required: boolean;
-      }>(`/api/v1/rooms/${id}/preview`),
+      client.get<RoomEntryInfo>(`/api/v1/rooms/${id}/preview`),
     join: (id: string, password?: string) =>
       client.post<JoinRoomResponse>(
         `/api/v1/rooms/${id}/join`,
@@ -179,6 +262,13 @@ export function createRoomsApi(client: Client) {
       client.patch<RoomMusicState>(`/api/v1/rooms/${id}/music`, body),
     clearMusic: (id: string) =>
       client.delete<RoomMusicState>(`/api/v1/rooms/${id}/music`),
+    getCine: (id: string) => client.get<RoomCineState>(`/api/v1/rooms/${id}/cine`),
+    setCine: (id: string, body: RoomCineUpsertBody) =>
+      client.post<RoomCineState>(`/api/v1/rooms/${id}/cine`, body),
+    patchCine: (id: string, body: RoomCinePatchBody) =>
+      client.patch<RoomCineState>(`/api/v1/rooms/${id}/cine`, body),
+    stopCine: (id: string) =>
+      client.delete<RoomCineState>(`/api/v1/rooms/${id}/cine`),
     removeParticipant: (roomId: string, participantId: string) =>
       client.delete<{ status: string }>(
         `/api/v1/rooms/${roomId}/participants/${participantId}`,
@@ -205,8 +295,45 @@ export function createRoomsApi(client: Client) {
   };
 }
 
+export function createCineApi(client: Client) {
+  return {
+    catalog: (params?: { category?: string; search?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.category && params.category !== "all") {
+        q.set("category", params.category);
+      }
+      const search = params?.search?.trim();
+      if (search) {
+        q.set("search", search);
+      }
+      const qs = q.toString();
+      return client.get<CineCatalogResponse>(`/api/v1/cine/catalog${qs ? `?${qs}` : ""}`);
+    },
+    meta: (params: { imdbId?: string; mediaId?: string; type?: "series" | "movie" }) => {
+      const q = new URLSearchParams();
+      q.set("type", params.type ?? "series");
+      if (params.imdbId?.trim()) {
+        q.set("imdbId", params.imdbId.trim());
+      }
+      if (params.mediaId?.trim()) {
+        q.set("mediaId", params.mediaId.trim());
+      }
+      return client.get<CineSeriesMeta>(`/api/v1/cine/meta?${q.toString()}`);
+    },
+  };
+}
+
 export function publicRoomCoverPath(roomId: string): string {
   return `/api/v1/rooms/${roomId}/cover`;
+}
+
+/** Same-origin playback URL for direct watch party (bypasses CDN CORS in the browser). */
+export function roomMusicStreamPath(roomId: string): string {
+  return `/api/v1/rooms/${roomId}/music/stream`;
+}
+
+export function roomCineStreamPath(roomId: string): string {
+  return `/api/v1/rooms/${roomId}/cine/stream`;
 }
 
 export type RealtimeEvent = {

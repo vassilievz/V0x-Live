@@ -286,6 +286,21 @@ func (s *Service) Join(ctx context.Context, roomID primitive.ObjectID, sess sess
 	if err != nil {
 		return models.RoomParticipant{}, err
 	}
+
+	_ = s.PruneStaleParticipants(ctx, roomID)
+	if existing, findErr := s.findActiveParticipant(ctx, roomID, sess.ID); findErr == nil {
+		if err := s.checkRoomPassword(room, in.Password); err != nil {
+			return models.RoomParticipant{}, err
+		}
+		return s.syncParticipantDisplayName(ctx, existing, sess)
+	} else if !errors.Is(findErr, ErrNotFound) {
+		return models.RoomParticipant{}, findErr
+	}
+
+	if part, ok, err := s.resumePrivateRoomHost(ctx, room, sess, in); ok {
+		return part, err
+	}
+
 	if !CanDirectJoin(room) {
 		return models.RoomParticipant{}, ErrPrivateJoinRequiresInvite
 	}

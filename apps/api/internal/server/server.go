@@ -13,6 +13,7 @@ import (
 	"github.com/v0xlive/v0x-live/apps/api/internal/auth"
 	"github.com/v0xlive/v0x-live/apps/api/internal/auth/session"
 	"github.com/v0xlive/v0x-live/apps/api/internal/chat"
+	"github.com/v0xlive/v0x-live/apps/api/internal/cine"
 	"github.com/v0xlive/v0x-live/apps/api/internal/config"
 	"github.com/v0xlive/v0x-live/apps/api/internal/database"
 	"github.com/v0xlive/v0x-live/apps/api/internal/health"
@@ -41,6 +42,10 @@ func New(cfg config.Config, store *database.Store) *Server {
 	roomHandler := rooms.NewHandler(roomSvc, hub, cfg)
 	chatHandler := chat.NewHandler(store, roomSvc, hub)
 	musicHandler := music.NewHandler(store, roomSvc, hub)
+	cineCatalogSvc := cine.NewCatalogService()
+	cineHandler := cine.NewHandler(store, roomSvc, hub, cineCatalogSvc)
+	cineCatalogHandler := cine.NewCatalogHandler(cineCatalogSvc)
+	cineCatalogLimiter := apimw.NewRateLimiter(3, 8, cfg.TrustProxy, cfg.RateLimitMaxIPs, cfg.RateLimitVisitorTTL)
 	streamHandler := streaming.NewHandler(cfg, roomSvc)
 	realtimeHandler := realtime.NewHandler(hub, sessions, roomSvc, cfg)
 	healthHandler := health.NewHandler(store, version)
@@ -75,6 +80,12 @@ func New(cfg config.Config, store *database.Store) *Server {
 		api.With(auth.RequireSession(sessions)).Post("/presence/heartbeat", presenceHandler.Heartbeat)
 		api.With(auth.RequireSession(sessions)).Get("/realtime/ws", realtimeHandler.ServeWS)
 
+		api.Route("/cine", func(cr chi.Router) {
+			cr.Use(auth.RequireSession(sessions))
+			cr.Use(cineCatalogLimiter.Middleware)
+			cineCatalogHandler.RegisterRoutes(cr)
+		})
+
 		api.Route("/rooms", func(rr chi.Router) {
 			roomHandler.RegisterPublic(rr)
 			rr.Group(func(pr chi.Router) {
@@ -82,6 +93,7 @@ func New(cfg config.Config, store *database.Store) *Server {
 				roomHandler.RegisterProtected(pr)
 				chatHandler.RegisterRoutes(pr)
 				musicHandler.RegisterRoutes(pr)
+				cineHandler.RegisterRoutes(pr)
 				streamHandler.RegisterRoutes(pr)
 			})
 		})

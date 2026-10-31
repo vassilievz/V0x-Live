@@ -4,6 +4,7 @@ import {
   createHealthApi,
   createPresenceApi,
   createRoomsApi,
+  createCineApi,
   createStatsApi,
 } from "@v0xlive/api-client";
 
@@ -12,6 +13,7 @@ const baseUrl = import.meta.env.VITE_API_URL ?? "";
 export const api = createApiClient({ baseUrl });
 export const authApi = createAuthApi(api);
 export const roomsApi = createRoomsApi(api);
+export const cineApi = createCineApi(api);
 export const healthApi = createHealthApi(api);
 export const statsApi = createStatsApi(api);
 export const presenceApi = createPresenceApi(api);

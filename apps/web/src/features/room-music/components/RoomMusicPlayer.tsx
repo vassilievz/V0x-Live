@@ -1,5 +1,4 @@
-import { useEffect, useId, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Lock,
@@ -10,8 +9,7 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import type { RealtimeEvent, RoomMusicPatchBody, RoomMusicState } from "@v0xlive/api-client";
-import { roomsApi } from "@/lib/api";
+import { useRoomDirectVideoRequired } from "@/features/room-music/RoomDirectVideoContext";
 import { musicThumbnailUrl } from "@/features/room-music/metadata";
 import { useRoomMusicYouTube } from "@/features/room-music/useRoomMusicYouTube";
 import {
@@ -32,59 +30,42 @@ import {
 } from "@/ui";
 
 type Props = {
-  roomId: string;
-  lastEvent: RealtimeEvent | null;
   viewerRole?: string | null;
 };
 
-export function RoomMusicPlayer({ roomId, lastEvent, viewerRole }: Props) {
-  const queryClient = useQueryClient();
+export function RoomMusicPlayer({ viewerRole }: Props) {
   const { t } = useTranslation();
   const frameId = useId().replace(/:/g, "");
-  const [volume, setVolume] = useState(70);
+  const ctx = useRoomDirectVideoRequired();
+  const {
+    roomId,
+    queryClient,
+    state,
+    volume,
+    setVolume,
+    isDirectActive,
+    canControl,
+    patch,
+    clear,
+  } = ctx;
 
-  const music = useQuery({
-    queryKey: ["room-music", roomId],
-    queryFn: () => roomsApi.getMusic(roomId),
-  });
-
-  useEffect(() => {
-    if (lastEvent?.type === "room.music.updated") {
-      queryClient.setQueryData(["room-music", roomId], lastEvent.payload as RoomMusicState);
-    }
-  }, [lastEvent, queryClient, roomId]);
-
-  const patch = useMutation({
-    mutationFn: (body: RoomMusicPatchBody) => roomsApi.patchMusic(roomId, body),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["room-music", roomId], data);
-    },
-  });
-
-  const clear = useMutation({
-    mutationFn: () => roomsApi.clearMusic(roomId),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["room-music", roomId], data);
-    },
-  });
-
-  const state = music.data;
   const active = state?.active === true;
-  const canControl = state?.can_control === true;
+  const isYouTube = active && !isDirectActive;
 
-  const { localPlaying, isPlaylist, sendPlayPause, seekBy, skipPlaylist } =
-    useRoomMusicYouTube({
-      roomId,
-      frameId,
-      volume,
-      state,
-      active,
-      canControl,
-      patch: patch.mutate,
-      queryClient,
-    });
+  const youtube = useRoomMusicYouTube({
+    roomId,
+    frameId,
+    volume,
+    state,
+    active: isYouTube,
+    canControl,
+    patch,
+    queryClient,
+  });
 
-  if (!active || !state) {
+  const { localPlaying, isPlaylist, sendPlayPause, seekBy, skipPlaylist } = youtube;
+
+  if (!active || !state || isDirectActive) {
     return null;
   }
 
@@ -132,9 +113,7 @@ export function RoomMusicPlayer({ roomId, lastEvent, viewerRole }: Props) {
           className={roomMusicPlayerClose}
           aria-label={t("music.remove")}
           disabled={!canRemove}
-          onClick={() => {
-            if (canRemove) clear.mutate();
-          }}
+          onClick={() => clear()}
         >
           <X className="size-4" aria-hidden="true" />
         </button>

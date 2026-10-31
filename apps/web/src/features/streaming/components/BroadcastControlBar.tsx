@@ -13,8 +13,12 @@ import {
 } from "@/features/streaming/broadcastSettings";
 import { useBroadcastSettings } from "@/features/streaming/BroadcastSettingsContext";
 import { BroadcastSettingsMenu } from "@/features/streaming/components/BroadcastSettingsMenu";
+import { BroadcastRoomMediaButton } from "@/features/streaming/components/BroadcastRoomMediaButton";
+import { BroadcastRoomCineButton } from "@/features/room-cine/components/BroadcastRoomCineButton";
 
 type BroadcastControlBarProps = {
+  roomId?: string;
+  viewerRole?: string | null;
   onDeviceError?: (error: { source: Track.Source; error: Error }) => void;
 };
 
@@ -26,8 +30,28 @@ function browserSupportsScreenSharing(): boolean {
   );
 }
 
-export function BroadcastControlBar({ onDeviceError }: BroadcastControlBarProps) {
+function useCompactBroadcastControls(): boolean {
+  const [compact, setCompact] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.matchMedia("(max-width: 720px)").matches;
+  });
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 720px)");
+    const onChange = () => setCompact(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  return compact;
+}
+
+export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: BroadcastControlBarProps) {
   const { t } = useTranslation();
+  const compact = useCompactBroadcastControls();
   const { settings } = useBroadcastSettings();
   const localPermissions = useLocalParticipantPermissions();
   const { localParticipant } = useLocalParticipant();
@@ -77,13 +101,21 @@ export function BroadcastControlBar({ onDeviceError }: BroadcastControlBarProps)
   const showScreen =
     canPublishSource(Track.Source.ScreenShare) && browserSupportsScreenSharing();
 
+  const screenLabel = screenOn
+    ? compact
+      ? t("broadcast.screenStopShort")
+      : t("broadcast.screenStop")
+    : compact
+      ? t("broadcast.screenStartShort")
+      : t("broadcast.screenStart");
+
   return (
     <footer className="broadcast-stage-dock" aria-label={t("broadcast.controlsDock")}>
       <div className="broadcast-stage-dock-inner">
         <div className="lk-control-bar broadcast-control-bar">
-          <div className="broadcast-control-bar-group">
+          <div className="broadcast-control-bar-track" role="group" aria-label={t("broadcast.controlsDock")}>
             {showMic ? (
-              <div className="lk-button-group">
+              <div className="broadcast-control-bar-item">
                 <TrackToggle
                   source={Track.Source.Microphone}
                   showIcon
@@ -91,12 +123,12 @@ export function BroadcastControlBar({ onDeviceError }: BroadcastControlBarProps)
                     onDeviceError?.({ source: Track.Source.Microphone, error })
                   }
                 >
-                  {t("broadcast.mic")}
+                  {compact ? t("broadcast.micShort") : t("broadcast.mic")}
                 </TrackToggle>
               </div>
             ) : null}
             {showCam ? (
-              <div className="lk-button-group">
+              <div className="broadcast-control-bar-item">
                 <TrackToggle
                   source={Track.Source.Camera}
                   showIcon
@@ -106,37 +138,52 @@ export function BroadcastControlBar({ onDeviceError }: BroadcastControlBarProps)
                     onDeviceError?.({ source: Track.Source.Camera, error })
                   }
                 >
-                  {t("broadcast.camera")}
+                  {compact ? t("broadcast.cameraShort") : t("broadcast.camera")}
                 </TrackToggle>
               </div>
             ) : null}
             {showScreen ? (
-              <TrackToggle
-                source={Track.Source.ScreenShare}
-                showIcon
-                captureOptions={screenMedia.captureOptions}
-                publishOptions={screenMedia.publishOptions}
-                onDeviceError={(error) =>
-                  onDeviceError?.({ source: Track.Source.ScreenShare, error })
-                }
-              >
-                {screenOn ? t("broadcast.screenStop") : t("broadcast.screenStart")}
-              </TrackToggle>
+              <div className="broadcast-control-bar-item broadcast-control-bar-item--wide">
+                <TrackToggle
+                  source={Track.Source.ScreenShare}
+                  showIcon
+                  captureOptions={screenMedia.captureOptions}
+                  publishOptions={screenMedia.publishOptions}
+                  onDeviceError={(error) =>
+                    onDeviceError?.({ source: Track.Source.ScreenShare, error })
+                  }
+                >
+                  {screenLabel}
+                </TrackToggle>
+              </div>
             ) : null}
-          </div>
-
-          <div ref={qualityAnchorRef} className="broadcast-control-bar-quality">
-            <button
-              type="button"
-              className={`lk-button broadcast-quality-trigger${qualityOpen ? " is-open" : ""}`}
-              aria-expanded={qualityOpen}
-              aria-haspopup="dialog"
-              onClick={() => setQualityOpen((v) => !v)}
-            >
-              <SlidersHorizontal size={16} aria-hidden="true" />
-              {t("broadcast.quality")}
-            </button>
-            <BroadcastSettingsMenu open={qualityOpen} onClose={closeQuality} />
+            {roomId ? (
+              <div className="broadcast-control-bar-item">
+                <BroadcastRoomMediaButton roomId={roomId} compact={compact} />
+              </div>
+            ) : null}
+            {roomId ? (
+              <div className="broadcast-control-bar-item">
+                <BroadcastRoomCineButton
+                  roomId={roomId}
+                  viewerRole={viewerRole ?? null}
+                  compact={compact}
+                />
+              </div>
+            ) : null}
+            <div ref={qualityAnchorRef} className="broadcast-control-bar-item broadcast-control-bar-quality">
+              <button
+                type="button"
+                className={`lk-button broadcast-control-bar-btn broadcast-quality-trigger${qualityOpen ? " is-open" : ""}`}
+                aria-expanded={qualityOpen}
+                aria-haspopup="dialog"
+                onClick={() => setQualityOpen((v) => !v)}
+              >
+                <SlidersHorizontal size={16} aria-hidden="true" />
+                {compact ? t("broadcast.qualityShort") : t("broadcast.quality")}
+              </button>
+              <BroadcastSettingsMenu open={qualityOpen} onClose={closeQuality} />
+            </div>
           </div>
         </div>
       </div>
