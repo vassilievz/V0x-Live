@@ -1,65 +1,160 @@
-# Railway — 3 serviços + Redis
+# Railway — 3 serviços Git + plugin Redis
 
-O erro **“No start command detected” (Railpack)** aparece quando a Railway trata o **monorepo Node na raiz** com Railpack.  
-Este projeto usa **Dockerfile por serviço** — não precisas de `build`/`start` manual no painel se o builder estiver certo.
+## “Mudei o Dockerfile e ainda sobe nginx”
 
-## 1. Criar serviços no mesmo project
+**Nginx = sempre o WEB.** O contentor LiveKit **nunca** corre nginx.
 
-| Nome sugerido | Config-as-code (Settings) | Dockerfile (automático via toml) |
-|---------------|---------------------------|----------------------------------|
-| **v0x-web** | `apps/web/railway.toml` | `infrastructure/docker/Dockerfile.web` |
-| **v0x-api** | `apps/api/railway.toml` | `apps/api/Dockerfile` |
-| **v0x-livekit** | `infrastructure/livekit/railway.toml` | `infrastructure/docker/Dockerfile.livekit` |
-| **Redis** | — | Plugin **Redis** (marketplace) |
+Isso significa **uma** destas coisas:
 
-**Root Directory:** `/` (raiz do repo) em todos.  
-**Não** uses um único serviço na raiz sem config file — isso dispara o Railpack.
+1. Estás a ver os **logs do serviço Web** (outro card no project), não do LiveKit.  
+2. Só tens **um** serviço Git — ele continua com `Dockerfile.web`.  
+3. Alteraste o Dockerfile noutro sítio e **não guardaste** / não fizeste **Redeploy** no serviço certo.  
+4. Criaste **dois** serviços ligados ao repo mas **os dois** têm o mesmo Dockerfile path (web).
 
-### Onde meter o config file
+**Fix:** cria (ou usa) um **serviço separado** só para LiveKit e confirma o path **nesse** serviço.
 
-Em cada serviço: **Settings → Config-as-code → Railway Config File** → caminho da tabela acima → Save → Redeploy.
+---
 
-O `railway.toml` na **raiz** existe só como fallback do front; **API e LiveKit** têm de apontar ao **seu** ficheiro.
+## Passo a passo: serviço LiveKit NOVO (não reutilizar o Web)
 
-## 2. Builder (obrigatório)
+1. No **project Railway** → **+ New** → **GitHub Repo** → escolhe **o mesmo repo** outra vez.  
+   (Sim, **3 serviços** = 3 ligações ao mesmo repo.)
 
-Em **Settings → Build**:
+2. Renomeia o serviço: **`v0x-livekit`**.
 
-- **Builder:** `Dockerfile` (ou “Docker”)
-- **Desliga** Nixpacks/Railpack se houver toggle
-- Não preencher “Custom Build Command” / “Custom Start Command” quando usas Dockerfile
+3. **Settings → Build** (deste serviço, não do web):
 
-Com Dockerfile, build e start vêm da imagem:
+   | Campo | Valor exato |
+   |--------|-------------|
+   | Builder | **Dockerfile** |
+   | Dockerfile path | `infrastructure/docker/Dockerfile.livekit` |
 
-| Serviço | Build (Docker) | Start (Docker) |
-|---------|----------------|----------------|
-| **API** | `go build` no Dockerfile | `api` (escuta `$PORT`) |
-| **Web** | `pnpm build` + nginx | nginx em `$PORT` |
-| **LiveKit** | imagem `livekit-server` + entrypoint | `livekit-server --config …` |
+4. **Save** → **Deploy** → **View logs**.
 
-## 3. Se insistires em comandos no painel (não recomendado)
+   - **Certo:** linha `=== V0X LIVEKIT` e depois logs do `livekit-server` (ou erro Redis).  
+   - **Errado:** `nginx/1.31.8` → ainda é web; o path **deste** serviço está `Dockerfile.web` ou Railpack.
 
-Só se **não** usares Dockerfile:
+5. **Variables** neste serviço só:
 
-| Serviço | Build command | Start command |
-|---------|---------------|---------------|
-| Web | `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @v0xlive/web build` | `npx serve apps/web/dist -s -l $PORT` |
-| API | — | Usar Dockerfile Go; Railpack não deteta entry Go na raiz |
-| LiveKit | — | Usar Dockerfile LiveKit |
+   ```env
+   REDIS_URL=<Reference → plugin Redis → REDIS_URL>
+   LIVEKIT_KEYS=v0xlive_prod: …
+   ```
 
-Para produção, mantém **Dockerfile**.
+6. **Networking** → Custom domain `lklive.v0x.lol` (quando DNS estiver pronto).
 
-## 4. Variáveis
+O serviço **Web** mantém **sempre**:
 
-Copiar de **`.env.railway`** (blocos WEB / API / LIVEKIT).  
-Web: `VITE_*` no serviço **v0x-web** (rebuild após mudar).
+`infrastructure/docker/Dockerfile.web` → logs nginx (normal).
 
-## 5. Domínios
+---
 
-| Serviço | Domínio |
-|---------|---------|
-| Web | `live.v0x.lol` |
-| API | `apilive.v0x.lol` |
-| LiveKit | `lklive.v0x.lol` |
+## Config-as-code (`railway.toml`) deprecado
 
-Ver [`domains.md`](domains.md) e [`railway.md`](railway.md).
+Se **Add File Path** volta ao original ou não grava, configura **só no painel** (secção abaixo).  
+Os ficheiros `apps/*/railway.toml` ficam como **referência** no repo; a Railway pode ignorá-los.
+
+## Redis ≠ deploy do Git
+
+O **Redis** é **plugin** (Add → Database → Redis). **Não** ligues o repo Git ao Redis.  
+**Não** há `railway.toml` no Redis — só variáveis geradas pela Railway (`REDIS_URL`, …).
+
+Se “subiu o front” num serviço que querias Redis: criaste um **serviço Git** em vez do **plugin Redis**, ou o serviço Git usa Dockerfile **web** por defeito.
+
+---
+
+## Criar 4 coisas no project
+
+| # | Tipo | Nome | O que faz |
+|---|------|------|-----------|
+| 1 | **Plugin** | Redis | Só dados; sem Git |
+| 2 | **Git repo** | v0x-web | Front |
+| 3 | **Git repo** | v0x-api | API Go |
+| 4 | **Git repo** | v0x-livekit | LiveKit |
+
+Mesmo repositório GitHub nos 3 serviços Git; **Settings diferentes** em cada um.
+
+---
+
+## v0x-web (live.v0x.lol)
+
+**Settings → Build**
+
+| Campo | Valor |
+|--------|--------|
+| Builder | **Dockerfile** |
+| Dockerfile path | `infrastructure/docker/Dockerfile.web` |
+| Root directory | `/` (vazio ou raiz) |
+| Custom Build Command | **vazio** |
+| Custom Start Command | **vazio** |
+
+**Variables**
+
+```env
+VITE_API_URL=https://apilive.v0x.lol
+VITE_WS_URL=wss://apilive.v0x.lol
+VITE_LIVEKIT_URL=wss://lklive.v0x.lol
+```
+
+**Settings → Networking → Custom Domain:** `live.v0x.lol`
+
+Depois de mudar `VITE_*` → **Redeploy**.
+
+---
+
+## v0x-api (apilive.v0x.lol)
+
+**Settings → Build**
+
+| Campo | Valor |
+|--------|--------|
+| Builder | **Dockerfile** |
+| Dockerfile path | `apps/api/Dockerfile` |
+| Custom Build / Start | **vazios** |
+
+**Variables:** bloco **SERVIÇO API** em `.env.railway` (Mongo, CORS, `LIVEKIT_*`, …).
+
+**Custom Domain:** `apilive.v0x.lol`  
+**Healthcheck:** `/health`
+
+---
+
+## v0x-livekit (lklive.v0x.lol)
+
+**Settings → Build**
+
+| Campo | Valor |
+|--------|--------|
+| Builder | **Dockerfile** |
+| Dockerfile path | `infrastructure/docker/Dockerfile.livekit` |
+| Custom Build / Start | **vazios** |
+
+**Variables**
+
+```env
+REDIS_URL=<referência ao plugin Redis, ou colar REDIS_URL>
+LIVEKIT_KEYS=v0xlive_prod: <secret>
+```
+
+No LiveKit: **Add variable → Reference** → serviço Redis → `REDIS_URL`.
+
+**Custom Domain:** `lklive.v0x.lol`
+
+---
+
+## Porque “voltava ao original”
+
+1. **Config-as-code** deprecado — muitos projects já **não guardam** file path.  
+2. **`railway.toml` na raiz** (removido do repo) apontava sempre para o **Dockerfile web** → qualquer serviço sem path próprio virava front/nginx nos logs.  
+3. **Redis** nunca vem do Git; é plugin à parte.
+
+---
+
+## Checklist rápido
+
+- [ ] 1× plugin **Redis** (sem Git)  
+- [ ] 3× serviços **Git**, cada um com **Dockerfile path** diferente (tabela acima)  
+- [ ] **Não** usar Config File se não persistir — usa Dockerfile path manual  
+- [ ] Domínios nos serviços certos (web / api / livekit)
+
+Ver também: [`railway.md`](railway.md), [`domains.md`](domains.md).

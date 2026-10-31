@@ -3,7 +3,7 @@
 Produção: **`live.v0x.lol`** (web) · **`apilive.v0x.lol`** (API) · **`lklive.v0x.lol`** (LiveKit).  
 Valores prontos para colar: **`.env.railway`** (gitignored). Detalhe DNS: [`domains.md`](domains.md).
 
-**Erro Railpack “No start command”?** → [`railway-services.md`](railway-services.md) (3 serviços + Dockerfile, não Node na raiz).
+**Erro Railpack / deploy errado?** → [`railway-services.md`](railway-services.md) (3 serviços Git + Redis plugin; **sem** `railway.toml` na raiz).
 
 ## Ordem recomendada
 

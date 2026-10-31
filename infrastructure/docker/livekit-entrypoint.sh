@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+echo "=== V0X LIVEKIT (livekit-server) — se vês nginx, o Dockerfile path está errado no serviço Railway ==="
+
 host="${REDISHOST:-}"
 port="${REDISPORT:-6379}"
 user="${REDISUSER:-default}"
