@@ -70,12 +70,11 @@ if [ -z "$pass" ]; then
   exit 1
 fi
 
-listen="${PORT:-7880}"
 CONFIG="/tmp/livekit.yaml"
 
 ICE_TCP_PORT=""
 NODE_IP=""
-BRIDGE_FROM=""
+BRIDGE_FROM="7881"
 
 if [ -n "${RAILWAY_TCP_PROXY_DOMAIN:-}" ] && [ -n "${RAILWAY_TCP_PROXY_PORT:-}" ]; then
   ICE_TCP_PORT="$RAILWAY_TCP_PROXY_PORT"
@@ -96,6 +95,16 @@ if [ -n "${RAILWAY_TCP_PROXY_DOMAIN:-}" ] && [ -n "${RAILWAY_TCP_PROXY_PORT:-}" 
 else
   log "AVISO: sem TCP proxy Railway na porta 7881 — WebRTC UDP falha aqui; crie o proxy e redeploy."
 fi
+
+# Railway HTTP/WSS (domínio lklive) usa $PORT — NUNCA 7881 (reservada ao socat / TCP proxy).
+listen="${LIVEKIT_HTTP_PORT:-${PORT:-7880}}"
+if [ -n "$ICE_TCP_PORT" ] && [ "$listen" = "$BRIDGE_FROM" ]; then
+  log "FATAL: PORT=${listen} conflita com o TCP proxy de mídia (:${BRIDGE_FROM})."
+  log "FATAL: remova PORT=7881 (e LIVEKIT_RTC_TCP_PORT) das variáveis do serviço LiveKit."
+  log "FATAL: deixe a Railway injetar PORT só para HTTP/WSS; TCP proxy separado na 7881."
+  exit 1
+fi
+log "HTTP/WSS (signalling) port: ${listen}"
 
 if [ -n "$ICE_TCP_PORT" ]; then
   RTC_BLOCK=$(printf '%s\n' \
