@@ -6,44 +6,79 @@ function redirectOnDevtoolOpen(): void {
   window.location.replace(DEVTOOL_OPEN_REDIRECT_URL);
 }
 
-/** Blocks common DevTools shortcuts without navigating away (YouTube is only on detected open). */
+function matchesKey(event: KeyboardEvent, letter: string): boolean {
+  const lower = letter.toLowerCase();
+  return event.key.toLowerCase() === lower || event.code === `Key${letter.toUpperCase()}`;
+}
+
+function matchesAnyKey(event: KeyboardEvent, letters: readonly string[]): boolean {
+  return letters.some((letter) => matchesKey(event, letter));
+}
+
+/** Atalhos conhecidos que abrem ou acionam DevTools / view-source (Win, Linux, macOS). */
+function isDevtoolsKeyboardShortcut(event: KeyboardEvent): boolean {
+  if (event.code === "F12" || event.key === "F12" || event.keyCode === 123) {
+    return true;
+  }
+
+  const ctrlOrMeta = event.ctrlKey || event.metaKey;
+  const { shiftKey, altKey } = event;
+
+  if (ctrlOrMeta && shiftKey && !altKey) {
+    if (matchesAnyKey(event, ["i", "j", "c", "k", "m", "e", "o", "d"])) {
+      return true;
+    }
+  }
+
+  if (ctrlOrMeta && altKey) {
+    if (matchesAnyKey(event, ["i", "j", "c", "u", "k", "e"])) {
+      return true;
+    }
+  }
+
+  if (ctrlOrMeta && shiftKey && altKey) {
+    if (matchesAnyKey(event, ["i", "j", "c", "u", "k"])) {
+      return true;
+    }
+  }
+
+  if (ctrlOrMeta && !shiftKey && !altKey && matchesKey(event, "u")) {
+    return true;
+  }
+
+  if (event.metaKey && event.altKey && !event.shiftKey) {
+    if (matchesAnyKey(event, ["i", "j", "c", "u", "k", "e"])) {
+      return true;
+    }
+  }
+
+  if (event.metaKey && event.shiftKey && !event.altKey && matchesKey(event, "c")) {
+    return true;
+  }
+
+  if (event.metaKey && event.shiftKey && !event.altKey && matchesKey(event, "j")) {
+    return true;
+  }
+
+  return false;
+}
+
+function blockDevtoolsKeyboardEvent(event: KeyboardEvent): void {
+  if (!isDevtoolsKeyboardShortcut(event)) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+}
+
 function attachDevtoolsShortcutBlocker(): void {
-  const blocked = (event: KeyboardEvent): boolean => {
-    const key = event.key.toLowerCase();
-    const ctrlOrMeta = event.ctrlKey || event.metaKey;
-    const shift = event.shiftKey;
-    const alt = event.altKey;
+  const opts: AddEventListenerOptions = { capture: true };
 
-    if (key === "f12") {
-      return true;
-    }
-
-    if (ctrlOrMeta && shift && (key === "i" || key === "j" || key === "c" || key === "k")) {
-      return true;
-    }
-
-    if (ctrlOrMeta && alt && (key === "i" || key === "j" || key === "c" || key === "u")) {
-      return true;
-    }
-
-    if (ctrlOrMeta && key === "u") {
-      return true;
-    }
-
-    return false;
-  };
-
-  window.addEventListener(
-    "keydown",
-    (event) => {
-      if (!blocked(event)) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-    },
-    true,
-  );
+  for (const type of ["keydown", "keyup", "keypress"] as const) {
+    window.addEventListener(type, blockDevtoolsKeyboardEvent, opts);
+    document.addEventListener(type, blockDevtoolsKeyboardEvent, opts);
+  }
 }
 
 /**

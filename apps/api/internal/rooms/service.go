@@ -29,7 +29,11 @@ var (
 	ErrAlreadyInRoom = errors.New("already in room")
 	// ErrPrivateJoinRequiresInvite blocks direct join by room ObjectID for private rooms.
 	ErrPrivateJoinRequiresInvite = errors.New("private room requires invite code")
+	ErrInvalidPreview            = errors.New("invalid preview")
 )
+
+const maxPreviewJPEGBytes = 120 * 1024
+const previewMaxAge = 20 * time.Minute
 
 var slugRe = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
@@ -55,6 +59,14 @@ type PublicRoomItem struct {
 	Description      string
 	ParticipantCount int
 	IsLive           bool
+	HasPreview       bool
+}
+
+func previewFresh(updatedAt time.Time, jpeg []byte) bool {
+	if len(jpeg) == 0 || updatedAt.IsZero() {
+		return false
+	}
+	return time.Since(updatedAt) <= previewMaxAge
 }
 
 func (s *Service) ListPublic(ctx context.Context) ([]PublicRoomItem, error) {
@@ -79,9 +91,12 @@ func (s *Service) ListPublic(ctx context.Context) ([]PublicRoomItem, error) {
 			"as": "active",
 		}}},
 		{{Key: "$project", Value: bson.M{
-			"name":        1,
-			"description": 1,
-			"count":       bson.M{"$size": "$active"},
+			"name":              1,
+			"description":       1,
+			"count":             bson.M{"$size": "$active"},
+			"broadcast_active":  1,
+			"preview_jpeg":      1,
+			"preview_updated_at": 1,
 		}}},
 	}
 
@@ -94,23 +109,60 @@ func (s *Service) ListPublic(ctx context.Context) ([]PublicRoomItem, error) {
 	items := make([]PublicRoomItem, 0)
 	for cur.Next(ctx) {
 		var row struct {
-			ID          primitive.ObjectID `bson:"_id"`
-			Name        string             `bson:"name"`
-			Description string             `bson:"description"`
-			Count       int                `bson:"count"`
+			ID               primitive.ObjectID `bson:"_id"`
+			Name             string             `bson:"name"`
+			Description      string             `bson:"description"`
+			Count            int                `bson:"count"`
+			BroadcastActive  bool               `bson:"broadcast_active"`
+			PreviewJPEG      []byte             `bson:"preview_jpeg"`
+			PreviewUpdatedAt time.Time          `bson:"preview_updated_at"`
 		}
 		if err := cur.Decode(&row); err != nil {
 			return nil, err
 		}
+		hasPreview := previewFresh(row.PreviewUpdatedAt, row.PreviewJPEG)
 		items = append(items, PublicRoomItem{
 			ID:               row.ID.Hex(),
 			Name:             row.Name,
 			Description:      row.Description,
 			ParticipantCount: row.Count,
-			IsLive:           row.Count > 0,
+			IsLive:           row.BroadcastActive,
+			HasPreview:       hasPreview,
 		})
 	}
 	return items, nil
+}
+
+type OwnedRoomItem struct {
+	ID         string
+	Name       string
+	Visibility string
+	InviteCode string
+}
+
+func (s *Service) ListOwnedByUser(ctx context.Context, userID primitive.ObjectID) ([]OwnedRoomItem, error) {
+	cur, err := s.rooms.Find(ctx, bson.M{
+		"owner_id": userID,
+		"status":   models.StatusActive,
+	}, options.Find().SetSort(bson.M{"updated_at": -1}).SetLimit(40))
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	out := make([]OwnedRoomItem, 0)
+	for cur.Next(ctx) {
+		var room models.Room
+		if err := cur.Decode(&room); err != nil {
+			return nil, err
+		}
+		out = append(out, OwnedRoomItem{
+			ID:         room.ID.Hex(),
+			Name:       room.Name,
+			Visibility: room.Visibility,
+			InviteCode: room.InviteCode,
+		})
+	}
+	return out, nil
 }
 
 func (s *Service) GetByID(ctx context.Context, roomID primitive.ObjectID) (models.Room, error) {
@@ -677,4 +729,76 @@ func randomInviteCode() (string, error) {
 		return "", err
 	}
 	return strings.ToUpper(hex.EncodeToString(b)), nil
+}
+
+func (s *Service) SetBroadcastActive(ctx context.Context, roomID primitive.ObjectID, active bool) error {
+	now := time.Now().UTC()
+	set := bson.M{
+		"broadcast_active": active,
+		"updated_at":       now,
+	}
+	unset := bson.M{}
+	if !active {
+		unset["preview_jpeg"] = ""
+		unset["preview_updated_at"] = ""
+	}
+	update := bson.M{"$set": set}
+	if len(unset) > 0 {
+		update["$unset"] = unset
+	}
+	res, err := s.rooms.UpdateOne(ctx, bson.M{
+		"_id":    roomID,
+		"status": models.StatusActive,
+	}, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *Service) SavePreviewJPEG(ctx context.Context, roomID primitive.ObjectID, jpeg []byte) error {
+	if len(jpeg) == 0 || len(jpeg) > maxPreviewJPEGBytes {
+		return ErrInvalidPreview
+	}
+	now := time.Now().UTC()
+	res, err := s.rooms.UpdateOne(ctx, bson.M{
+		"_id":    roomID,
+		"status": models.StatusActive,
+	}, bson.M{
+		"$set": bson.M{
+			"preview_jpeg":       jpeg,
+			"preview_updated_at": now,
+			"broadcast_active":   true,
+			"updated_at":         now,
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *Service) PublicCoverJPEG(ctx context.Context, roomID primitive.ObjectID) ([]byte, error) {
+	var room models.Room
+	err := s.rooms.FindOne(ctx, bson.M{
+		"_id":        roomID,
+		"status":     models.StatusActive,
+		"visibility": models.VisibilityPublic,
+	}).Decode(&room)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	if !previewFresh(room.PreviewUpdatedAt, room.PreviewJPEG) {
+		return nil, ErrNotFound
+	}
+	return room.PreviewJPEG, nil
 }

@@ -77,6 +77,13 @@ export const domainEs = {
     people_other: "{{count}} personas",
     joinRoom: "Entrar",
     joinRoomAria: "Entrar en la sala {{name}}",
+    filterLabel: "Filtrar salas",
+    filterAll: "Todas las salas",
+    filterLive: "En vivo ahora",
+    sortLabel: "Ordenar salas",
+    sortPeople: "Más personas",
+    sortRecent: "Más recientes",
+    onAir: "En el aire",
   },
   room: {
     defaultName: "Sala",

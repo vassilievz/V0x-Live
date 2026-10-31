@@ -36,7 +36,7 @@ func New(cfg config.Config, store *database.Store) *Server {
 	hub := realtime.NewHub()
 	roomSvc := rooms.NewService(store)
 
-	authHandler := auth.NewHandler(sessions, roomSvc)
+	authHandler := auth.NewHandler(sessions, roomSvc, auth.NewUserRepository(store.Collection("users")), cfg)
 	roomHandler := rooms.NewHandler(roomSvc, hub, cfg)
 	chatHandler := chat.NewHandler(store, roomSvc, hub)
 	musicHandler := music.NewHandler(store, roomSvc, hub)

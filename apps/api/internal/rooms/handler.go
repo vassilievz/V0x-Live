@@ -2,6 +2,7 @@ package rooms
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
@@ -39,6 +40,7 @@ type publicRoomItem struct {
 	Description      string `json:"description,omitempty"`
 	ParticipantCount int    `json:"participant_count"`
 	IsLive           bool   `json:"is_live"`
+	HasPreview       bool   `json:"has_preview"`
 }
 
 type createRequest struct {
@@ -67,9 +69,11 @@ type permissionRequest struct {
 func (h *Handler) RegisterPublic(r chi.Router) {
 	r.Get("/", h.listPublic)
 	r.Get("/{roomID}/preview", h.previewRoom)
+	r.Get("/{roomID}/cover", h.roomCover)
 }
 
 func (h *Handler) RegisterProtected(r chi.Router) {
+	r.Get("/mine", h.listMine)
 	r.Post("/", h.create)
 	r.Post("/join-by-code", h.joinByCode)
 	r.Get("/{roomID}", h.getRoom)
@@ -80,6 +84,7 @@ func (h *Handler) RegisterProtected(r chi.Router) {
 	r.Delete("/{roomID}/participants/{participantID}", h.removeParticipant)
 	r.Patch("/{roomID}/participants/{participantID}/permissions", h.patchPermissions)
 	r.Post("/{roomID}/screen", h.screenSignal)
+	r.Put("/{roomID}/cover", h.uploadRoomCover)
 }
 
 func (h *Handler) listPublic(w http.ResponseWriter, r *http.Request) {
@@ -96,9 +101,39 @@ func (h *Handler) listPublic(w http.ResponseWriter, r *http.Request) {
 			Description:      it.Description,
 			ParticipantCount: it.ParticipantCount,
 			IsLive:           it.IsLive,
+			HasPreview:       it.HasPreview,
 		}
 	}
 	httpx.WriteJSON(w, http.StatusOK, listResponse{Items: out, Total: len(out)})
+}
+
+func (h *Handler) listMine(w http.ResponseWriter, r *http.Request) {
+	sess, ok := auth.SessionFromContext(r.Context())
+	if !ok || sess.IsGuest || sess.UserID == nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "Conta Google necessária")
+		return
+	}
+	items, err := h.svc.ListOwnedByUser(r.Context(), *sess.UserID)
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "server_error", "Erro ao listar salas")
+		return
+	}
+	type mineItem struct {
+		ID         string `json:"id"`
+		Name       string `json:"name"`
+		Visibility string `json:"visibility"`
+		InviteCode string `json:"invite_code"`
+	}
+	out := make([]mineItem, len(items))
+	for i, it := range items {
+		out[i] = mineItem{
+			ID:         it.ID,
+			Name:       it.Name,
+			Visibility: it.Visibility,
+			InviteCode: it.InviteCode,
+		}
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": out, "total": len(out)})
 }
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
@@ -187,6 +222,60 @@ func (h *Handler) previewRoom(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) roomCover(w http.ResponseWriter, r *http.Request) {
+	roomID, err := parseRoomID(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "ID inválido")
+		return
+	}
+	jpeg, err := h.svc.PublicCoverJPEG(r.Context(), roomID)
+	if err != nil {
+		writeRoomErr(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Cache-Control", "public, max-age=15")
+	_, _ = w.Write(jpeg)
+}
+
+func (h *Handler) uploadRoomCover(w http.ResponseWriter, r *http.Request) {
+	sess, ok := auth.SessionFromContext(r.Context())
+	if !ok {
+		writeUnauthorized(w)
+		return
+	}
+	roomID, err := parseRoomID(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "ID inválido")
+		return
+	}
+	if err := h.svc.EnsureActiveParticipant(r.Context(), roomID.Hex(), sess.ID); err != nil {
+		writeRoomErr(w, err)
+		return
+	}
+	var req struct {
+		ImageBase64 string `json:"image_base64"`
+	}
+	if err := httpx.DecodeJSON(r, &req); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_body", "Corpo JSON inválido")
+		return
+	}
+	raw := strings.TrimSpace(req.ImageBase64)
+	if i := strings.Index(raw, ","); i >= 0 {
+		raw = raw[i+1:]
+	}
+	jpeg, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Imagem inválida")
+		return
+	}
+	if err := h.svc.SavePreviewJPEG(r.Context(), roomID, jpeg); err != nil {
+		writeRoomErr(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
 func (h *Handler) getRoom(w http.ResponseWriter, r *http.Request) {
 	sess, ok := auth.SessionFromContext(r.Context())
 	if !ok {
@@ -248,6 +337,11 @@ func (h *Handler) screenSignal(w http.ResponseWriter, r *http.Request) {
 		eventType = realtime.EventScreenStarted
 	} else if req.Action != "stop" {
 		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "action deve ser start ou stop")
+		return
+	}
+	active := req.Action == "start"
+	if err := h.svc.SetBroadcastActive(r.Context(), roomID, active); err != nil {
+		writeRoomErr(w, err)
 		return
 	}
 	part, _ := h.svc.ActiveParticipant(r.Context(), roomID.Hex(), sess.ID)
@@ -489,6 +583,8 @@ func writeRoomErr(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusGone, "room_closed", "Sala encerrada")
 	case errors.Is(err, ErrPrivateJoinRequiresInvite):
 		httpx.WriteError(w, http.StatusForbidden, "invite_required", "Use o código de convite para entrar nesta sala")
+	case errors.Is(err, ErrInvalidPreview):
+		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Pré-visualização inválida")
 	default:
 		httpx.WriteError(w, http.StatusBadRequest, "validation_error", err.Error())
 	}

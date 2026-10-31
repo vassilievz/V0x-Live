@@ -5,8 +5,9 @@ import { Trans, useTranslation } from "react-i18next";
 import { DEFAULT_GUEST_DISPLAY_NAME } from "@v0xlive/api-client";
 import { ArrowUpRight, KeyRound } from "lucide-react";
 import { Button, Input } from "@v0xlive/ui";
-import { authApi, roomsApi, ApiError } from "@/lib/api";
+import { roomsApi, ApiError } from "@/lib/api";
 import { ensureGuestSession } from "@/lib/guestSession";
+import { useSessionUser } from "@/hooks/useSessionUser";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
 import { SitePageHead } from "@/components/layout/SitePageHead";
 import { DashboardCreateVisual } from "@/features/rooms/components/DashboardCreateVisual";
@@ -55,11 +56,21 @@ export function DashboardPage() {
   const [roomName, setRoomName] = useState(params.get("create") ?? "");
   const [inviteCode, setInviteCode] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
-  const me = useQuery({ queryKey: ["auth", "me"], queryFn: () => authApi.me(), retry: false });
+  const me = useSessionUser();
 
   useEffect(() => {
+    if (params.get("auth") === "google") {
+      return;
+    }
     void ensureGuestSession(queryClient);
-  }, [queryClient]);
+  }, [params, queryClient]);
+
+  const myRooms = useQuery({
+    queryKey: ["rooms", "mine"],
+    queryFn: () => roomsApi.listMine(),
+    enabled: me.isSuccess && me.data?.is_guest === false,
+    retry: false,
+  });
 
   const createRoom = useMutation({
     mutationFn: () => roomsApi.create({ name: roomName.trim(), visibility }),
@@ -114,6 +125,37 @@ export function DashboardPage() {
       </section>
 
       <section className={cn(homeBentoPanel, sitePanel, dashboardPanel)}>
+        {params.get("auth") === "google" ? (
+          <p className={cn(notice, dashboardPanelNotice)} role="status">
+            {t("dashboard.authGoogleWelcome")}
+          </p>
+        ) : null}
+        {me.isSuccess && !me.data.is_guest ? (
+          <div className={cn("border-b border-border px-[var(--bento-pad-x)] py-[var(--bento-pad-y)]", dashboardPanelNotice)}>
+            <h2 className={focusCardSubtitle}>{t("dashboard.myRooms")}</h2>
+            {myRooms.isLoading ? (
+              <p className={fieldHelp}>{t("room.loading")}</p>
+            ) : null}
+            {myRooms.isSuccess && myRooms.data.items.length === 0 ? (
+              <p className={fieldHelp}>{t("dashboard.myRoomsEmpty")}</p>
+            ) : null}
+            {myRooms.isSuccess && myRooms.data.items.length > 0 ? (
+              <ul className="mt-4 grid gap-2">
+                {myRooms.data.items.map((room) => (
+                  <li key={room.id}>
+                    <Link
+                      to={`/room/${room.id}`}
+                      className={cn(textLink, "inline-flex items-center gap-2 text-sm font-semibold")}
+                    >
+                      {room.name}
+                      <ArrowUpRight size={14} aria-hidden="true" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
         {serviceDown ? (
           <p className={cn(notice, noticeError, focusPageNotice, dashboardPanelNotice)} role="alert">
             {t("errors.serviceDown")}

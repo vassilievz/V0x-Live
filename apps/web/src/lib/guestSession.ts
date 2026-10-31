@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { DEFAULT_GUEST_DISPLAY_NAME, type AuthUser } from "@v0xlive/api-client";
-import { authApi } from "@/lib/api";
+import { authApi, ApiError } from "@/lib/api";
 
 /** Must match API `SESSION_COOKIE_NAME` (default `v0x_session`). */
 export const SESSION_COOKIE_NAME =
@@ -18,9 +18,11 @@ export function hasSessionCookie(): boolean {
   });
 }
 
+type RefreshResult = AuthUser | "unauthorized" | null;
+
 async function refreshSessionFromCookie(
   queryClient: QueryClient,
-): Promise<AuthUser | null> {
+): Promise<RefreshResult> {
   if (!hasSessionCookie()) {
     return null;
   }
@@ -28,7 +30,10 @@ async function refreshSessionFromCookie(
     const user = await authApi.me();
     queryClient.setQueryData(["auth", "me"], user);
     return user;
-  } catch {
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      return "unauthorized";
+    }
     return null;
   }
 }
@@ -36,7 +41,7 @@ async function refreshSessionFromCookie(
 /** Idempotent guest session; safe to call from hover, layout, and room entry. */
 export function ensureGuestSession(queryClient: QueryClient): Promise<AuthUser | null> {
   const cached = queryClient.getQueryData<AuthUser>(["auth", "me"]);
-  if (cached) {
+  if (cached && !cached.is_guest) {
     return Promise.resolve(cached);
   }
 
@@ -45,9 +50,14 @@ export function ensureGuestSession(queryClient: QueryClient): Promise<AuthUser |
   }
 
   ensurePromise = (async () => {
-    const fromCookie = await refreshSessionFromCookie(queryClient);
-    if (fromCookie) {
-      return fromCookie;
+    if (hasSessionCookie()) {
+      const fromCookie = await refreshSessionFromCookie(queryClient);
+      if (fromCookie && fromCookie !== "unauthorized") {
+        return fromCookie;
+      }
+      if (fromCookie === null) {
+        return cached ?? null;
+      }
     }
 
     try {
@@ -64,11 +74,15 @@ export function ensureGuestSession(queryClient: QueryClient): Promise<AuthUser |
   return ensurePromise;
 }
 
-/** Re-sync session cookie with React Query (e.g. before leave after a stale cache). */
+/** Re-sync session cookie with React Query (e.g. after Google OAuth redirect). */
 export async function syncSessionUser(queryClient: QueryClient): Promise<AuthUser | null> {
-  const cached = queryClient.getQueryData<AuthUser>(["auth", "me"]);
-  if (cached) {
-    return cached;
+  queryClient.removeQueries({ queryKey: ["auth", "me"] });
+  if (!hasSessionCookie()) {
+    return null;
   }
-  return refreshSessionFromCookie(queryClient);
+  const fromCookie = await refreshSessionFromCookie(queryClient);
+  if (fromCookie && fromCookie !== "unauthorized") {
+    return fromCookie;
+  }
+  return null;
 }

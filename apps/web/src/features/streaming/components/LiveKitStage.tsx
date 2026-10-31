@@ -7,6 +7,7 @@ import { getLiveKitUrl } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { roomStageBroadcast } from "@/ui";
 import { BroadcastStage } from "@/features/streaming/components/BroadcastStage";
+import { RoomCoverPublisher } from "@/features/streaming/components/RoomCoverPublisher";
 import { ScreenShareSignals } from "@/features/streaming/components/ScreenShareSignals";
 
 type Props = {
@@ -31,7 +32,12 @@ export function LiveKitStage({ token, serverUrl, roomId, onDisconnected }: Props
       className={cn("broadcast-room lk-room-container", roomStageBroadcast)}
     >
       <BroadcastStage />
-      {roomId ? <ScreenShareSignals roomId={roomId} /> : null}
+      {roomId ? (
+        <>
+          <ScreenShareSignals roomId={roomId} />
+          <RoomCoverPublisher roomId={roomId} />
+        </>
+      ) : null}
     </LiveKitRoom>
   );
 }

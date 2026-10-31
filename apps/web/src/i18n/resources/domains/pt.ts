@@ -45,6 +45,9 @@ export const domainPt = {
     inviteCodePlaceholder: "Código do convite",
     joinPending: "Entrando…",
     join: "Entrar",
+    myRooms: "Suas salas salvas",
+    myRoomsEmpty: "Nenhuma sala criada com esta conta ainda. Crie uma abaixo — ficam ligadas ao seu perfil Google.",
+    authGoogleWelcome: "Conta Google conectada. Nome e salas ficam salvos neste perfil.",
   },
   explore: {
     title: "Encontre seu sinal.",
@@ -75,6 +78,13 @@ export const domainPt = {
     people_other: "{{count}} pessoas",
     joinRoom: "Entrar",
     joinRoomAria: "Entrar na sala {{name}}",
+    filterLabel: "Filtrar salas",
+    filterAll: "Todas as salas",
+    filterLive: "Ao vivo agora",
+    sortLabel: "Ordenar salas",
+    sortPeople: "Mais pessoas",
+    sortRecent: "Mais recentes",
+    onAir: "No ar",
   },
   room: {
     defaultName: "Sala",

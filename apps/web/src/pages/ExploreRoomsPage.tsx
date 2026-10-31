@@ -10,6 +10,9 @@ import { cn } from "@/lib/cn";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
 import { SitePageHead } from "@/components/layout/SitePageHead";
 import { ExploreRoomsHero } from "@/features/rooms/components/ExploreRoomsHero";
+import { PublicRoomCardMedia } from "@/features/rooms/components/PublicRoomCardMedia";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { useSessionUser } from "@/hooks/useSessionUser";
 import {
   actionLink,
   actionLinkPill,
@@ -18,17 +21,19 @@ import {
   homeCellCode,
   roomCardExplore,
   roomCardExploreAudience,
+  roomCardExploreBody,
   roomCardExploreCta,
   roomCardExploreDesc,
   roomCardExploreHead,
   roomCardExploreSkeleton,
   roomCardExploreStatus,
   roomCardExploreTitle,
+  roomsFilterSelect,
   roomsGrid,
   roomsGridExplore,
   roomsSearch,
   roomsToolbar,
-  signalDot,
+  roomsToolbarRow,
   sitePanelFlush,
   textLink,
 } from "@/ui";
@@ -40,12 +45,23 @@ function searchLocale(language: string): string {
   return "en";
 }
 
+type RoomFilter = "all" | "live";
+type RoomSort = "people" | "recent";
+
 export function ExploreRoomsPage() {
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<RoomFilter>("all");
+  const [sort, setSort] = useState<RoomSort>("people");
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
+  const session = useSessionUser();
   const locale = searchLocale(i18n.language);
-  const rooms = useQuery({ queryKey: ["rooms", "public"], queryFn: () => roomsApi.listPublic(), retry: false });
+  const rooms = useQuery({
+    queryKey: ["rooms", "public"],
+    queryFn: () => roomsApi.listPublic(),
+    retry: false,
+    refetchInterval: 20_000,
+  });
 
   useEffect(() => {
     void ensureGuestSession(queryClient);
@@ -54,10 +70,18 @@ export function ExploreRoomsPage() {
   const prefetchGuest = () => {
     void ensureGuestSession(queryClient);
   };
-  const items =
-    rooms.data?.items.filter((room) =>
-      room.name.toLocaleLowerCase(locale).includes(search.toLocaleLowerCase(locale)),
-    ) ?? [];
+  const items = useMemo(() => {
+    const base =
+      rooms.data?.items.filter((room) =>
+        room.name.toLocaleLowerCase(locale).includes(search.toLocaleLowerCase(locale)),
+      ) ?? [];
+    const filtered = filter === "live" ? base.filter((room) => room.is_live) : base;
+    const sorted = [...filtered];
+    if (sort === "people") {
+      sorted.sort((a, b) => b.participant_count - a.participant_count);
+    }
+    return sorted;
+  }, [filter, locale, rooms.data?.items, search, sort]);
 
   const countLabel = useMemo(() => {
     if (!rooms.isSuccess) {
@@ -84,18 +108,45 @@ export function ExploreRoomsPage() {
       <section className={cn(homeBentoPanel, sitePanelFlush)}>
         <div className={roomsToolbar}>
           <p>{countLabel}</p>
-          <div className={roomsSearch}>
-            <label htmlFor="room-search" className="sr-only">
-              {t("explore.searchLabel")}
+          <div className={roomsToolbarRow}>
+            <div className={roomsSearch}>
+              <label htmlFor="room-search" className="sr-only">
+                {t("explore.searchLabel")}
+              </label>
+              <Search aria-hidden="true" />
+              <Input
+                id="room-search"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("explore.searchPlaceholder")}
+              />
+            </div>
+            <label className="sr-only" htmlFor="room-filter">
+              {t("explore.filterLabel")}
             </label>
-            <Search aria-hidden="true" />
-            <Input
-              id="room-search"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("explore.searchPlaceholder")}
-            />
+            <select
+              id="room-filter"
+              className={roomsFilterSelect}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as RoomFilter)}
+            >
+              <option value="all">{t("explore.filterAll")}</option>
+              <option value="live">{t("explore.filterLive")}</option>
+            </select>
+            <label className="sr-only" htmlFor="room-sort">
+              {t("explore.sortLabel")}
+            </label>
+            <select
+              id="room-sort"
+              className={roomsFilterSelect}
+              value={sort}
+              onChange={(e) => setSort(e.target.value as RoomSort)}
+            >
+              <option value="people">{t("explore.sortPeople")}</option>
+              <option value="recent">{t("explore.sortRecent")}</option>
+            </select>
+            {!session.data || session.data.is_guest ? <GoogleSignInButton /> : null}
           </div>
         </div>
 
@@ -148,23 +199,27 @@ export function ExploreRoomsPage() {
                   onPointerEnter={prefetchGuest}
                   onFocus={prefetchGuest}
                 >
-                  <div className={roomCardExploreHead}>
-                    <span className={roomCardExploreStatus}>
-                      {room.is_live ? <span className={signalDot} aria-hidden="true" /> : null}
-                      {room.is_live ? t("explore.live") : t("explore.roomOpen")}
-                    </span>
-                    <span className={roomCardExploreAudience}>
-                      <Users aria-hidden="true" />
-                      {t("explore.people", { count: room.participant_count })}
+                  <PublicRoomCardMedia room={room} />
+                  <div className={roomCardExploreBody}>
+                    <div className={roomCardExploreHead}>
+                      {!room.is_live ? (
+                        <span className={roomCardExploreStatus}>{t("explore.roomOpen")}</span>
+                      ) : (
+                        <span className={roomCardExploreStatus}>{t("explore.onAir")}</span>
+                      )}
+                      <span className={roomCardExploreAudience}>
+                        <Users aria-hidden="true" />
+                        {t("explore.people", { count: room.participant_count })}
+                      </span>
+                    </div>
+                    <h2 className={roomCardExploreTitle}>{room.name}</h2>
+                    {room.description ? (
+                      <p className={roomCardExploreDesc}>{room.description}</p>
+                    ) : null}
+                    <span className={cn(textLink, roomCardExploreCta)}>
+                      {t("explore.joinRoom")} <ArrowUpRight aria-hidden="true" />
                     </span>
                   </div>
-                  <h2 className={roomCardExploreTitle}>{room.name}</h2>
-                  {room.description ? (
-                    <p className={roomCardExploreDesc}>{room.description}</p>
-                  ) : null}
-                  <span className={cn(textLink, roomCardExploreCta)}>
-                    {t("explore.joinRoom")} <ArrowUpRight aria-hidden="true" />
-                  </span>
                 </Link>
               </li>
             ))}

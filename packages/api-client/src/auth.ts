@@ -5,6 +5,7 @@ type Client = ReturnType<typeof createApiClient>;
 export type AuthUser = {
   display_name: string;
   avatar_url?: string;
+  email?: string;
   is_guest: boolean;
 };
 
@@ -22,6 +23,7 @@ export type RoomSummary = {
   description?: string;
   participant_count: number;
   is_live: boolean;
+  has_preview?: boolean;
 };
 
 export type CreateRoomBody = {
@@ -103,6 +105,13 @@ export function createAuthApi(client: Client) {
     logout: () => client.post<{ status: string }>("/api/v1/auth/logout"),
   };
 }
+
+export type OwnedRoom = {
+  id: string;
+  name: string;
+  visibility: string;
+  invite_code: string;
+};
 
 export type JoinRoomResponse = {
   room_id: string;
@@ -187,7 +196,17 @@ export function createRoomsApi(client: Client) {
       client.post<{ status: string }>(`/api/v1/rooms/${roomId}/screen`, {
         action,
       }),
+    uploadCover: (roomId: string, imageBase64: string) =>
+      client.put<{ status: string }>(`/api/v1/rooms/${roomId}/cover`, {
+        image_base64: imageBase64,
+      }),
+    listMine: () =>
+      client.get<{ items: OwnedRoom[]; total: number }>("/api/v1/rooms/mine"),
   };
+}
+
+export function publicRoomCoverPath(roomId: string): string {
+  return `/api/v1/rooms/${roomId}/cover`;
 }
 
 export type RealtimeEvent = {

@@ -82,6 +82,34 @@ func (m *Manager) CreateGuest(ctx context.Context, displayName, avatarURL string
 	return rawToken, sess, nil
 }
 
+func (m *Manager) CreateForUser(ctx context.Context, userID primitive.ObjectID) (rawToken string, sess Session, err error) {
+	rawToken, tokenHash, err := newToken()
+	if err != nil {
+		return "", Session{}, err
+	}
+	now := time.Now().UTC()
+	uid := userID
+	doc := models.UserSession{
+		UserID:    &uid,
+		TokenHash: tokenHash,
+		IsGuest:   false,
+		ExpiresAt: now.Add(m.maxAge),
+		CreatedAt: now,
+	}
+	res, err := m.sessions.InsertOne(ctx, doc)
+	if err != nil {
+		return "", Session{}, err
+	}
+	id, _ := res.InsertedID.(primitive.ObjectID)
+	sess = Session{
+		ID:        id,
+		UserID:    &uid,
+		IsGuest:   false,
+		ExpiresAt: doc.ExpiresAt,
+	}
+	return rawToken, sess, nil
+}
+
 func (m *Manager) UpdateGuest(ctx context.Context, id primitive.ObjectID, displayName, avatarURL string) error {
 	_, err := m.sessions.UpdateOne(ctx, bson.M{
 		"_id":        id,

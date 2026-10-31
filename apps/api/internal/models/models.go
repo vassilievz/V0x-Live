@@ -54,6 +54,9 @@ type Room struct {
 	CreatedAt       time.Time           `bson:"created_at"`
 	UpdatedAt       time.Time           `bson:"updated_at"`
 	ClosedAt        *time.Time          `bson:"closed_at,omitempty"`
+	BroadcastActive bool                `bson:"broadcast_active,omitempty"`
+	PreviewJPEG     []byte              `bson:"preview_jpeg,omitempty"`
+	PreviewUpdatedAt time.Time          `bson:"preview_updated_at,omitempty"`
 }
 
 type RoomParticipant struct {

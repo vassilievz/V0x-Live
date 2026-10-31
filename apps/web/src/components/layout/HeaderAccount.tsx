@@ -6,8 +6,10 @@ import { ArrowUpRight, LayoutGrid } from "lucide-react";
 import { DEFAULT_GUEST_DISPLAY_NAME, resolveGuestAvatar } from "@v0xlive/api-client";
 import { Button, Input } from "@v0xlive/ui";
 import { UserAvatar } from "@/components/user/UserAvatar";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { authApi, ApiError } from "@/lib/api";
+import { ensureGuestSession } from "@/lib/guestSession";
 import { cn } from "@/lib/cn";
 import {
   actionLink,
@@ -24,10 +26,10 @@ import {
   headerSessionDropdownKicker,
   headerSessionDropdownName,
   headerSessionDropdownPreview,
+  headerSessionDropdownGoogle,
   headerSessionMenu,
   headerSessionMenuOpen,
   headerSessionName,
-  homeBento,
   homeCellCode,
 } from "@/ui";
 
@@ -54,6 +56,16 @@ export function HeaderAccount() {
     },
   });
 
+  const logout = useMutation({
+    mutationFn: () => authApi.logout(),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ["auth", "me"] });
+      queryClient.removeQueries({ queryKey: ["rooms", "mine"] });
+      setOpen(false);
+      void ensureGuestSession(queryClient);
+    },
+  });
+
   useEffect(() => {
     if (!open || !session.data) {
       return;
@@ -61,11 +73,13 @@ export function HeaderAccount() {
     setDisplayName(
       isDefaultGuestName(session.data.display_name) ? "" : session.data.display_name,
     );
+    const avatar = session.data.avatar_url?.trim() ?? "";
     setAvatarUrl(
-      session.data.avatar_url &&
-        session.data.avatar_url !== resolveGuestAvatar()
-        ? session.data.avatar_url
-        : "",
+      session.data.is_guest && avatar === resolveGuestAvatar()
+        ? ""
+        : avatar === resolveGuestAvatar()
+          ? ""
+          : avatar,
     );
   }, [open, session.data]);
 
@@ -158,18 +172,30 @@ export function HeaderAccount() {
         {open ? (
           <div
             id={menuId}
-            className={cn(headerSessionDropdown, homeBento)}
+            className={headerSessionDropdown}
             role="dialog"
             aria-label={t("nav.sessionMenuAria")}
           >
             <p className={headerSessionDropdownKicker}>
-              <span className={homeCellCode}>ID</span>
-              {t("nav.sessionMenuKicker")}
+              <span className={cn(homeCellCode, "mb-0")}>ID</span>
+              <span className="truncate">
+                {me.is_guest ? t("nav.sessionMenuKicker") : t("nav.googleAccount")}
+              </span>
             </p>
             <div className={headerSessionDropdownPreview}>
               <UserAvatar name={previewName} src={previewAvatar} size="md" />
-              <p className={headerSessionDropdownName}>{chipLabel}</p>
+              <div>
+                <p className={headerSessionDropdownName}>{chipLabel}</p>
+                {!me.is_guest && me.email ? (
+                  <p className="mt-1 truncate text-xs text-muted">{me.email}</p>
+                ) : null}
+              </div>
             </div>
+            {me.is_guest ? (
+              <div className={headerSessionDropdownGoogle}>
+                <GoogleSignInButton />
+              </div>
+            ) : null}
             <form className={headerSessionDropdownForm} onSubmit={handleSave}>
               <div className={fieldGroup}>
                 <label htmlFor="header-session-name">{t("nav.sessionNameLabel")}</label>
@@ -221,6 +247,16 @@ export function HeaderAccount() {
                 <LayoutGrid size={16} aria-hidden="true" />
                 {t("nav.mySpace")}
               </Link>
+              {!me.is_guest ? (
+                <button
+                  type="button"
+                  className={headerSessionDropdownItem}
+                  disabled={logout.isPending}
+                  onClick={() => logout.mutate()}
+                >
+                  {logout.isPending ? t("nav.signingOut") : t("nav.logout")}
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}

@@ -41,6 +41,11 @@ export const en = {
     sessionAvatarHint: "Paste a public image URL. Leave empty for initials.",
     sessionSave: "Save",
     sessionSaving: "Saving…",
+    logout: "Sign out",
+    googleAccount: "Google account",
+  },
+  auth: {
+    googleSignIn: "Sign in with Google",
   },
   footer: {
     aria: "Footer",

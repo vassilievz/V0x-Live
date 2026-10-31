@@ -47,6 +47,9 @@ export const domainEn = {
     inviteCodePlaceholder: "Invite code",
     joinPending: "Joining…",
     join: "Join",
+    myRooms: "Your saved rooms",
+    myRoomsEmpty: "No rooms on this account yet. Create one below — they stay linked to your Google profile.",
+    authGoogleWelcome: "Google account connected. Your name and rooms are saved to this profile.",
   },
   explore: {
     title: "Find your signal.",
@@ -77,6 +80,13 @@ export const domainEn = {
     people_other: "{{count}} people",
     joinRoom: "Join",
     joinRoomAria: "Join room {{name}}",
+    filterLabel: "Filter rooms",
+    filterAll: "All rooms",
+    filterLive: "Live now",
+    sortLabel: "Sort rooms",
+    sortPeople: "Most people",
+    sortRecent: "Most recent",
+    onAir: "On air",
   },
   room: {
     defaultName: "Room",

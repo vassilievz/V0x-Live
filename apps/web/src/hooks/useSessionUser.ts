@@ -6,6 +6,8 @@ export function useSessionUser() {
     queryKey: ["auth", "me"],
     queryFn: () => authApi.me(),
     retry: false,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
   });
 }

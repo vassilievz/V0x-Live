@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/v0xlive/v0x-live/apps/api/internal/auth/session"
+	"github.com/v0xlive/v0x-live/apps/api/internal/config"
 	"github.com/v0xlive/v0x-live/apps/api/internal/httpx"
 )
 
@@ -22,10 +23,12 @@ type ParticipantSync interface {
 type Handler struct {
 	sessions *session.Manager
 	rooms    ParticipantSync
+	users    *UserRepository
+	cfg      config.Config
 }
 
-func NewHandler(sessions *session.Manager, rooms ParticipantSync) *Handler {
-	return &Handler{sessions: sessions, rooms: rooms}
+func NewHandler(sessions *session.Manager, rooms ParticipantSync, users *UserRepository, cfg config.Config) *Handler {
+	return &Handler{sessions: sessions, rooms: rooms, users: users, cfg: cfg}
 }
 
 type guestRequest struct {
@@ -41,6 +44,7 @@ type patchGuestRequest struct {
 type userResponse struct {
 	DisplayName string `json:"display_name"`
 	AvatarURL   string `json:"avatar_url,omitempty"`
+	Email       string `json:"email,omitempty"`
 	IsGuest     bool   `json:"is_guest"`
 }
 
@@ -48,6 +52,8 @@ func (h *Handler) RegisterRoutes(r chi.Router, guestRateLimit func(http.Handler)
 	r.Post("/logout", h.logout)
 	r.Get("/me", h.me)
 	r.Patch("/me", h.patchMe)
+	r.Get("/google", h.googleStart)
+	r.Get("/google/callback", h.googleCallback)
 	if guestRateLimit != nil {
 		r.With(guestRateLimit).Post("/guest", h.guest)
 	} else {
@@ -63,26 +69,44 @@ func (h *Handler) guest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	if existing, err := h.sessions.FromRequest(r.Context(), r); err == nil {
+		if !existing.IsGuest && existing.UserID != nil {
+			user, findErr := h.users.FindByID(r.Context(), *existing.UserID)
+			if findErr != nil {
+				httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "Sessão inválida ou expirada")
+				return
+			}
+			h.writeUserResponse(
+				w,
+				user.DisplayName,
+				NormalizeGuestAvatarURL(user.AvatarURL),
+				user.Email,
+				false,
+			)
+			return
+		}
+		if existing.IsGuest {
+			mergedName, mergedAvatar := mergeGuestRequestWithSession(existing, req)
+			name, avatar, errMsg := h.normalizeGuestProfile(mergedName, mergedAvatar)
+			if errMsg != "" {
+				httpx.WriteError(w, http.StatusBadRequest, "validation_error", errMsg)
+				return
+			}
+			if name != existing.GuestDisplayName || avatar != existing.GuestAvatarURL {
+				if err := h.persistGuestProfile(r.Context(), existing.ID, name, avatar); err != nil {
+					httpx.WriteError(w, http.StatusInternalServerError, "server_error", "Erro ao atualizar sessão")
+					return
+				}
+			}
+			h.writeUser(w, name, avatar)
+			return
+		}
+	}
+
 	name, avatar, errMsg := h.normalizeGuestProfile(req.DisplayName, req.AvatarURL)
 	if errMsg != "" {
 		httpx.WriteError(w, http.StatusBadRequest, "validation_error", errMsg)
-		return
-	}
-
-	if existing, err := h.sessions.FromRequest(r.Context(), r); err == nil && existing.IsGuest {
-		mergedName, mergedAvatar := mergeGuestRequestWithSession(existing, req)
-		name, avatar, errMsg = h.normalizeGuestProfile(mergedName, mergedAvatar)
-		if errMsg != "" {
-			httpx.WriteError(w, http.StatusBadRequest, "validation_error", errMsg)
-			return
-		}
-		if name != existing.GuestDisplayName || avatar != existing.GuestAvatarURL {
-			if err := h.persistGuestProfile(r.Context(), existing.ID, name, avatar); err != nil {
-				httpx.WriteError(w, http.StatusInternalServerError, "server_error", "Erro ao atualizar sessão")
-				return
-			}
-		}
-		h.writeUser(w, name, avatar)
 		return
 	}
 
@@ -128,7 +152,7 @@ func (h *Handler) persistGuestProfile(ctx context.Context, sessionID primitive.O
 
 func (h *Handler) patchMe(w http.ResponseWriter, r *http.Request) {
 	sess, err := h.sessions.FromRequest(r.Context(), r)
-	if err != nil || !sess.IsGuest {
+	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "Sessão inválida ou expirada")
 		return
 	}
@@ -140,6 +164,40 @@ func (h *Handler) patchMe(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DisplayName == nil && req.AvatarURL == nil {
 		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Nenhum campo para atualizar")
+		return
+	}
+
+	if !sess.IsGuest {
+		if sess.UserID == nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "Sessão inválida ou expirada")
+			return
+		}
+		user, err := h.users.FindByID(r.Context(), *sess.UserID)
+		if err != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "Sessão inválida ou expirada")
+			return
+		}
+		name := user.DisplayName
+		avatar := user.AvatarURL
+		if req.DisplayName != nil {
+			name = strings.TrimSpace(*req.DisplayName)
+		}
+		if req.AvatarURL != nil {
+			avatar = strings.TrimSpace(*req.AvatarURL)
+		}
+		name, avatar, errMsg := h.normalizeGuestProfile(name, avatar)
+		if errMsg != "" {
+			httpx.WriteError(w, http.StatusBadRequest, "validation_error", errMsg)
+			return
+		}
+		if err := h.users.UpdateProfile(r.Context(), user.ID, name, avatar); err != nil {
+			httpx.WriteError(w, http.StatusInternalServerError, "server_error", "Erro ao atualizar perfil")
+			return
+		}
+		if h.rooms != nil {
+			_ = h.rooms.SyncDisplayNameForSession(r.Context(), sess.ID, name)
+		}
+		h.writeUserResponse(w, name, avatar, user.Email, false)
 		return
 	}
 
@@ -181,12 +239,17 @@ func (h *Handler) normalizeGuestProfile(displayName, avatarURL string) (string, 
 	return name, avatar, ""
 }
 
-func (h *Handler) writeUser(w http.ResponseWriter, name, avatar string) {
+func (h *Handler) writeUserResponse(w http.ResponseWriter, name, avatar, email string, isGuest bool) {
 	httpx.WriteJSON(w, http.StatusOK, userResponse{
 		DisplayName: name,
 		AvatarURL:   avatar,
-		IsGuest:     true,
+		Email:       email,
+		IsGuest:     isGuest,
 	})
+}
+
+func (h *Handler) writeUser(w http.ResponseWriter, name, avatar string) {
+	h.writeUserResponse(w, name, avatar, "", true)
 }
 
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
@@ -200,8 +263,22 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	sess, err := h.sessions.FromRequest(r.Context(), r)
-	if err != nil || !sess.IsGuest {
+	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "Sessão inválida ou expirada")
+		return
+	}
+
+	if !sess.IsGuest {
+		if sess.UserID == nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "Sessão inválida ou expirada")
+			return
+		}
+		user, err := h.users.FindByID(r.Context(), *sess.UserID)
+		if err != nil {
+			httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "Sessão inválida ou expirada")
+			return
+		}
+		h.writeUserResponse(w, user.DisplayName, NormalizeGuestAvatarURL(user.AvatarURL), user.Email, false)
 		return
 	}
 

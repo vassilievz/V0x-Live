@@ -28,6 +28,9 @@ type Config struct {
 	LiveKitAPIKey      string
 	LiveKitAPISecret   string
 	AppPublicURL       string
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURI  string
 }
 
 func Load() (Config, error) {
@@ -66,6 +69,9 @@ func Load() (Config, error) {
 		LiveKitAPIKey:      getEnv("LIVEKIT_API_KEY", "devkey"),
 		LiveKitAPISecret:   getEnv("LIVEKIT_API_SECRET", "secret_must_be_at_least_32_characters_long_dev"),
 		AppPublicURL:       getEnv("APP_URL", "http://localhost:5173"),
+		GoogleClientID:     strings.TrimSpace(getEnv("GOOGLE_CLIENT_ID", "")),
+		GoogleClientSecret: strings.TrimSpace(getEnv("GOOGLE_CLIENT_SECRET", "")),
+		GoogleRedirectURI:  strings.TrimSpace(getEnv("GOOGLE_REDIRECT_URI", "")),
 	}
 
 	return cfg, nil
@@ -104,4 +110,8 @@ func splitCSV(s string) []string {
 
 func (c Config) SecureCookies() bool {
 	return c.Env == "production"
+}
+
+func (c Config) GoogleOAuthEnabled() bool {
+	return c.GoogleClientID != "" && c.GoogleClientSecret != "" && c.GoogleRedirectURI != ""
 }

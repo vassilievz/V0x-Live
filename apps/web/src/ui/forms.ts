@@ -85,9 +85,21 @@ export const inviteNote =
   "border-t border-border px-[clamp(20px,3vw,24px)] py-[18px] text-xs leading-relaxed text-muted";
 
 export const roomsToolbar =
-  "flex items-center justify-between gap-5 border-b border-border bg-background px-[var(--bento-pad-x)] py-[var(--bento-pad-y)] max-[600px]:flex-col max-[600px]:items-start max-[600px]:gap-4 [&>p]:font-mono [&>p]:text-[10px] [&>p]:uppercase [&>p]:tracking-[0.08em] [&>p]:text-muted";
+  "flex flex-col gap-4 border-b border-border bg-background px-[var(--bento-pad-x)] py-[var(--bento-pad-y)] lg:flex-row lg:items-center lg:justify-between [&>p]:shrink-0 [&>p]:font-mono [&>p]:text-[10px] [&>p]:uppercase [&>p]:tracking-[0.08em] [&>p]:text-muted";
 
-export const roomsSearch = "relative w-full max-w-[330px] max-[600px]:w-full [&>svg]:absolute [&>svg]:left-3.5 [&>svg]:top-[15px] [&>svg]:size-4 [&>svg]:text-muted [&_input]:pl-10";
+export const roomsToolbarRow =
+  "flex min-w-0 flex-1 flex-wrap items-center gap-3 lg:justify-end";
+
+export const roomsToolbarFilters = roomsToolbarRow;
+
+export const roomsFilterSelect =
+  "min-h-11 w-auto min-w-[9.75rem] shrink-0 cursor-pointer appearance-none rounded-lg border border-border bg-background bg-[length:12px] bg-[position:right_12px_center] bg-no-repeat px-3.5 py-2.5 pr-9 text-[13px] text-foreground [background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238c8c8c%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E')] max-[480px]:min-w-0 max-[480px]:flex-1";
+
+export const googleSignInLink =
+  "google-sign-in inline-flex min-h-11 w-full flex-row flex-nowrap items-center justify-center gap-2.5 rounded-lg border border-border bg-background px-4 py-2.5 text-[13px] font-semibold leading-none text-foreground no-underline transition-[background,border-color,transform] hover:border-muted hover:bg-surface active:scale-[0.98]";
+
+export const roomsSearch =
+  "relative min-w-[10rem] flex-1 basis-[12rem] max-w-md [&>svg]:absolute [&>svg]:left-3.5 [&>svg]:top-[15px] [&>svg]:size-4 [&>svg]:text-muted [&_input]:pl-10";
 
 export const roomsGrid =
   "m-0 grid list-none grid-cols-3 gap-0 p-0 max-[800px]:grid-cols-2 max-[600px]:grid-cols-1";
@@ -114,9 +126,19 @@ export const skeletonCard =
   "skeleton-card h-[280px] rounded-none border-0 border-b border-r border-border bg-surface";
 
 export const roomCardExplore =
-  "room-card-explore flex min-h-[200px] w-full flex-col gap-3 rounded-none border-0 border-b border-r border-border bg-background px-[var(--bento-pad-x)] py-[var(--bento-pad-y)] text-inherit no-underline transition-colors duration-200 hover:bg-surface data-[live=true]:shadow-[inset_2px_0_0_var(--color-foreground)] hover:[&_.room-card-explore-cta]:text-foreground [&_.text-link:hover]:shadow-none";
+  "room-card-explore group flex min-h-0 w-full flex-col gap-0 overflow-hidden rounded-none border-0 border-b border-r border-border bg-background p-0 text-inherit no-underline transition-colors duration-200 hover:bg-surface data-[live=true]:shadow-[inset_2px_0_0_var(--color-foreground)] hover:[&_.room-card-explore-cta]:text-foreground [&_.text-link:hover]:shadow-none";
 export const roomCardExploreSkeleton =
-  "room-card-explore--skeleton pointer-events-none min-h-[200px] rounded-none border-0 border-b border-r border-border bg-surface";
+  "room-card-explore--skeleton pointer-events-none min-h-[280px] rounded-none border-0 border-b border-r border-border bg-surface max-[600px]:min-h-[260px]";
+export const roomCardExploreMedia =
+  "room-card-explore-media relative aspect-[16/10] w-full overflow-hidden border-b border-border bg-secondary data-[live=true]:bg-surface data-[preview=true]:bg-black";
+export const roomCardExploreMediaImg =
+  "block h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.02]";
+export const roomCardExploreMediaIdle =
+  "flex h-full w-full flex-col items-center justify-center gap-2 text-muted [&>svg]:size-9 [&>svg]:opacity-80 [.room-card-explore-media[data-live=true]_&]:text-foreground [.room-card-explore-media[data-live=true]_&]:[&>svg]:opacity-100";
+export const roomCardExploreMediaBadge =
+  "absolute left-2.5 top-2.5 z-[2] inline-flex items-center gap-1.5 rounded-full border border-border bg-[rgb(0_0_0/0.78)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-foreground backdrop-blur-sm [&_.signal-dot]:shadow-none";
+export const roomCardExploreBody =
+  "flex flex-1 flex-col gap-2.5 px-[var(--bento-pad-x)] py-[var(--bento-pad-y)]";
 export const roomCardExploreHead = "flex items-center justify-between gap-2.5";
 export const roomCardExploreStatus =
   "inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.08em] text-muted [.room-card-explore[data-live=true]_&]:text-foreground [&_.signal-dot]:shadow-none";

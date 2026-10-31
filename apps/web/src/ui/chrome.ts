@@ -107,16 +107,18 @@ export const headerSessionChipTrigger =
 export const headerSessionName =
   "min-w-14 flex-1 truncate text-[13px] font-semibold text-foreground";
 export const headerSessionDropdown =
-  "header-session-dropdown locale-menu-animate absolute right-0 top-[calc(100%+8px)] min-w-[min(15rem,calc(100vw-var(--gutter)*2))] overflow-hidden rounded-xl py-3.5 pb-1.5";
+  "header-session-dropdown locale-menu-animate absolute right-0 top-[calc(100%+8px)] w-[min(20rem,calc(100vw-var(--gutter)*2))] min-w-[17.5rem] overflow-hidden rounded-xl border border-border bg-background py-0 shadow-[0_16px_48px_rgb(0_0_0/0.45)]";
 export const headerSessionDropdownKicker =
-  "flex items-center gap-2.5 px-4 pb-2 text-[11px] uppercase tracking-[0.06em] text-muted";
+  "flex items-center gap-2 border-b border-border px-4 py-2.5 text-[10px] uppercase tracking-[0.08em] text-muted [&_.home-cell-code]:mb-0";
 export const headerSessionDropdownName =
-  "text-[15px] font-semibold tracking-[-0.02em]";
+  "truncate text-[15px] font-semibold leading-tight tracking-[-0.02em]";
 export const headerSessionDropdownPreview =
-  "flex items-center gap-3 border-b border-border px-4 pb-3.5";
+  "flex items-center gap-3 border-b border-border px-4 py-3.5 [&>div]:min-w-0 [&>div]:flex-1";
+export const headerSessionDropdownGoogle =
+  "border-b border-border px-4 py-3.5";
 export const headerSessionDropdownForm =
-  "grid gap-3.5 px-4 py-3.5 pb-3 [&_.field-help]:mt-1.5";
-export const headerSessionDropdownActions = "flex flex-col";
+  "grid gap-3 border-b border-border px-4 py-3.5 [&_.field-help]:mt-1.5 [&_button[type=submit]]:bg-accent [&_button[type=submit]]:text-accent-foreground [&_button[type=submit]:disabled:opacity-45";
+export const headerSessionDropdownActions = "flex flex-col py-1";
 export const headerSessionDropdownItem =
   "header-session-dropdown-item flex min-h-11 w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 text-[13px] font-medium text-foreground no-underline transition-colors duration-[160ms] hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-foreground disabled:cursor-wait disabled:opacity-[0.55] [&+&]:border-t [&+&]:border-border [&_svg]:shrink-0 [&_svg]:text-muted";
 

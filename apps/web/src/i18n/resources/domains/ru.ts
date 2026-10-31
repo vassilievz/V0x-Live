@@ -77,6 +77,13 @@ export const domainRu = {
     people_other: "{{count}} человек",
     joinRoom: "Войти",
     joinRoomAria: "Войти в комнату {{name}}",
+    filterLabel: "Фильтр комнат",
+    filterAll: "Все комнаты",
+    filterLive: "В эфире",
+    sortLabel: "Сортировка",
+    sortPeople: "Больше людей",
+    sortRecent: "Недавние",
+    onAir: "В эфире",
   },
   room: {
     defaultName: "Комната",

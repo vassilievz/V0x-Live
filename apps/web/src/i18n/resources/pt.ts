@@ -40,6 +40,11 @@ export const pt = {
     sessionAvatarHint: "Cole um link público de imagem. Deixe vazio para usar iniciais.",
     sessionSave: "Salvar",
     sessionSaving: "Salvando…",
+    logout: "Sair",
+    googleAccount: "Conta Google",
+  },
+  auth: {
+    googleSignIn: "Entrar com Google",
   },
   footer: {
     aria: "Rodapé",
