@@ -10,18 +10,22 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/v0xlive/v0x-live/apps/api/internal/auth"
+	"github.com/v0xlive/v0x-live/apps/api/internal/auth/session"
+	"github.com/v0xlive/v0x-live/apps/api/internal/config"
 	"github.com/v0xlive/v0x-live/apps/api/internal/httpx"
 	"github.com/v0xlive/v0x-live/apps/api/internal/models"
 	"github.com/v0xlive/v0x-live/apps/api/internal/realtime"
+	"github.com/v0xlive/v0x-live/apps/api/internal/livekitauth"
 )
 
 type Handler struct {
 	svc *Service
 	hub *realtime.Hub
+	cfg config.Config
 }
 
-func NewHandler(svc *Service, hub *realtime.Hub) *Handler {
-	return &Handler{svc: svc, hub: hub}
+func NewHandler(svc *Service, hub *realtime.Hub, cfg config.Config) *Handler {
+	return &Handler{svc: svc, hub: hub, cfg: cfg}
 }
 
 type listResponse struct {
@@ -276,11 +280,7 @@ func (h *Handler) join(w http.ResponseWriter, r *http.Request) {
 
 	h.publishParticipantJoined(r.Context(), roomID.Hex(), part.DisplayName, part.Role)
 
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"room_id":        roomID.Hex(),
-		"participant_id": part.ID.Hex(),
-		"role":           part.Role,
-	})
+	h.writeJoinResponse(w, roomID, sess, part)
 }
 
 func (h *Handler) joinByCode(w http.ResponseWriter, r *http.Request) {
@@ -300,11 +300,24 @@ func (h *Handler) joinByCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.publishParticipantJoined(r.Context(), room.ID.Hex(), part.DisplayName, part.Role)
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"room_id":        room.ID.Hex(),
+	h.writeJoinResponse(w, room.ID, sess, part)
+}
+
+func (h *Handler) writeJoinResponse(
+	w http.ResponseWriter,
+	roomID primitive.ObjectID,
+	sess session.Session,
+	part models.RoomParticipant,
+) {
+	body := map[string]any{
+		"room_id":        roomID.Hex(),
 		"participant_id": part.ID.Hex(),
 		"role":           part.Role,
-	})
+	}
+	if lk, err := livekitauth.MintParticipantToken(h.cfg, roomID, sess.ID, part); err == nil {
+		body["livekit"] = lk
+	}
+	httpx.WriteJSON(w, http.StatusOK, body)
 }
 
 func (h *Handler) leave(w http.ResponseWriter, r *http.Request) {

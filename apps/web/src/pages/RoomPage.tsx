@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Wifi, WifiOff } from "lucide-react";
 import { Button } from "@v0xlive/ui";
 import { ApiError, roomsApi } from "@/lib/api";
+import type { JoinRoomResponse, LiveKitTokenResponse } from "@v0xlive/api-client";
 import { cn } from "@/lib/cn";
 import { useEnsureGuestSession } from "@/hooks/useEnsureGuestSession";
 import { useSessionUser } from "@/hooks/useSessionUser";
@@ -53,13 +54,19 @@ export function RoomPage() {
 
   const hasSession = session.isSuccess;
 
+  const applyJoinSuccess = (data: JoinRoomResponse) => {
+    setRole(data.role);
+    setJoined(true);
+    if (data.livekit && roomId) {
+      queryClient.setQueryData<LiveKitTokenResponse>(["livekit", roomId], data.livekit);
+    }
+  };
+
   const join = useMutation({
     mutationFn: (password?: string) => roomsApi.join(roomId!, password),
     onSuccess: (data) => {
-      setRole(data.role);
-      setJoined(true);
+      applyJoinSuccess(data);
       void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-      void queryClient.invalidateQueries({ queryKey: ["livekit", roomId] });
     },
   });
 
@@ -81,7 +88,7 @@ export function RoomPage() {
     retry: 2,
   });
 
-  const { connected, lastEvent } = useRoomSocket(roomId, joined);
+  const { connected, lastEvent } = useRoomSocket(roomId, joined || join.isPending);
 
   const leave = useMutation({
     mutationFn: () => roomsApi.leave(roomId!),
@@ -105,8 +112,11 @@ export function RoomPage() {
   const waitingSession = session.isLoading || ensuring || preview.isLoading;
   const showGate =
     !joined &&
+    !join.isPending &&
     !waitingSession &&
     (!hasSession || preview.data?.password_required === true);
+
+  const showStage = joined || join.isPending || join.isError;
 
   if (waitingSession && !joined) {
     return (
@@ -143,26 +153,29 @@ export function RoomPage() {
         passwordRequired={preview.data?.password_required ?? false}
         hasSession={hasSession}
         sessionUser={session.data}
-        onJoined={(r) => {
+        onJoined={(data) => {
           void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-          setRole(r);
-          setJoined(true);
+          applyJoinSuccess(data);
         }}
       />
     );
   }
 
-  if (!joined && join.isPending) {
+  if (!showStage) {
     return (
       <SiteCatalogShell>
         <section className={cn(homeBentoPanel, sitePanelCompact)}>
           <p className={fieldHelp} role="status">
-            {t("room.joining")}
+            {join.isPending ? t("room.joining") : t("room.loading")}
           </p>
         </section>
       </SiteCatalogShell>
     );
   }
+
+  const livekitSession =
+    livekit.data ??
+    queryClient.getQueryData<LiveKitTokenResponse>(["livekit", roomId]);
 
   return (
     <RoomStageShell
@@ -185,11 +198,11 @@ export function RoomPage() {
               {join.error.message}
             </p>
           ) : null}
-          {livekit.isSuccess ? (
+          {livekitSession ? (
             <LiveKitStage
               roomId={roomId}
-              token={livekit.data.token}
-              serverUrl={livekit.data.url}
+              token={livekitSession.token}
+              serverUrl={livekitSession.url}
             />
           ) : livekit.isError ? (
             <div className={roomStagePlaceholder} role="status">

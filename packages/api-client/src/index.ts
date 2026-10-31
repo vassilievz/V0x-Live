@@ -85,6 +85,7 @@ export type {
   Participant,
   ChatMessage,
   LiveKitTokenResponse,
+  JoinRoomResponse,
   RealtimeEvent,
   RoomMusicState,
   RoomMusicPatchBody,

@@ -37,7 +37,7 @@ func New(cfg config.Config, store *database.Store) *Server {
 	roomSvc := rooms.NewService(store)
 
 	authHandler := auth.NewHandler(sessions, roomSvc)
-	roomHandler := rooms.NewHandler(roomSvc, hub)
+	roomHandler := rooms.NewHandler(roomSvc, hub, cfg)
 	chatHandler := chat.NewHandler(store, roomSvc, hub)
 	musicHandler := music.NewHandler(store, roomSvc, hub)
 	streamHandler := streaming.NewHandler(cfg, roomSvc)

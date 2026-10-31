@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { DEFAULT_GUEST_DISPLAY_NAME } from "@v0xlive/api-client";
 import { ArrowUpRight, KeyRound } from "lucide-react";
 import { Button, Input } from "@v0xlive/ui";
 import { authApi, roomsApi, ApiError } from "@/lib/api";
+import { ensureGuestSession } from "@/lib/guestSession";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
 import { SitePageHead } from "@/components/layout/SitePageHead";
 import { DashboardCreateVisual } from "@/features/rooms/components/DashboardCreateVisual";
@@ -55,6 +56,11 @@ export function DashboardPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const me = useQuery({ queryKey: ["auth", "me"], queryFn: () => authApi.me(), retry: false });
+
+  useEffect(() => {
+    void ensureGuestSession(queryClient);
+  }, [queryClient]);
+
   const createRoom = useMutation({
     mutationFn: () => roomsApi.create({ name: roomName.trim(), visibility }),
     onSuccess: (data) => {

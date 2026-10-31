@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SlidersHorizontal } from "lucide-react";
-import { TrackToggle, useLocalParticipantPermissions } from "@livekit/components-react";
+import {
+  TrackToggle,
+  useLocalParticipant,
+  useLocalParticipantPermissions,
+} from "@livekit/components-react";
 import { Track } from "livekit-client";
 import {
   buildCameraMediaOptions,
@@ -26,7 +30,7 @@ export function BroadcastControlBar({ onDeviceError }: BroadcastControlBarProps)
   const { t } = useTranslation();
   const { settings } = useBroadcastSettings();
   const localPermissions = useLocalParticipantPermissions();
-  const [screenOn, setScreenOn] = useState(false);
+  const { localParticipant } = useLocalParticipant();
   const [qualityOpen, setQualityOpen] = useState(false);
   const qualityAnchorRef = useRef<HTMLDivElement>(null);
 
@@ -35,10 +39,7 @@ export function BroadcastControlBar({ onDeviceError }: BroadcastControlBarProps)
     [settings],
   );
   const cameraMedia = useMemo(() => buildCameraMediaOptions(settings), [settings]);
-
-  const onScreenShareChange = useCallback((enabled: boolean) => {
-    setScreenOn(enabled);
-  }, []);
+  const screenOn = localParticipant?.isScreenShareEnabled ?? false;
 
   const closeQuality = useCallback(() => setQualityOpen(false), []);
 
@@ -80,64 +81,63 @@ export function BroadcastControlBar({ onDeviceError }: BroadcastControlBarProps)
     <footer className="broadcast-stage-dock" aria-label={t("broadcast.controlsDock")}>
       <div className="broadcast-stage-dock-inner">
         <div className="lk-control-bar broadcast-control-bar">
-      <div className="broadcast-control-bar-group">
-        {showMic ? (
-          <div className="lk-button-group">
-            <TrackToggle
-              source={Track.Source.Microphone}
-              showIcon
-              onDeviceError={(error) =>
-                onDeviceError?.({ source: Track.Source.Microphone, error })
-              }
-            >
-              {t("broadcast.mic")}
-            </TrackToggle>
+          <div className="broadcast-control-bar-group">
+            {showMic ? (
+              <div className="lk-button-group">
+                <TrackToggle
+                  source={Track.Source.Microphone}
+                  showIcon
+                  onDeviceError={(error) =>
+                    onDeviceError?.({ source: Track.Source.Microphone, error })
+                  }
+                >
+                  {t("broadcast.mic")}
+                </TrackToggle>
+              </div>
+            ) : null}
+            {showCam ? (
+              <div className="lk-button-group">
+                <TrackToggle
+                  source={Track.Source.Camera}
+                  showIcon
+                  captureOptions={cameraMedia.captureOptions}
+                  publishOptions={cameraMedia.publishOptions}
+                  onDeviceError={(error) =>
+                    onDeviceError?.({ source: Track.Source.Camera, error })
+                  }
+                >
+                  {t("broadcast.camera")}
+                </TrackToggle>
+              </div>
+            ) : null}
+            {showScreen ? (
+              <TrackToggle
+                source={Track.Source.ScreenShare}
+                showIcon
+                captureOptions={screenMedia.captureOptions}
+                publishOptions={screenMedia.publishOptions}
+                onDeviceError={(error) =>
+                  onDeviceError?.({ source: Track.Source.ScreenShare, error })
+                }
+              >
+                {screenOn ? t("broadcast.screenStop") : t("broadcast.screenStart")}
+              </TrackToggle>
+            ) : null}
           </div>
-        ) : null}
-        {showCam ? (
-          <div className="lk-button-group">
-            <TrackToggle
-              source={Track.Source.Camera}
-              showIcon
-              captureOptions={cameraMedia.captureOptions}
-              publishOptions={cameraMedia.publishOptions}
-              onDeviceError={(error) =>
-                onDeviceError?.({ source: Track.Source.Camera, error })
-              }
-            >
-              {t("broadcast.camera")}
-            </TrackToggle>
-          </div>
-        ) : null}
-        {showScreen ? (
-          <TrackToggle
-            source={Track.Source.ScreenShare}
-            showIcon
-            captureOptions={screenMedia.captureOptions}
-            publishOptions={screenMedia.publishOptions}
-            onChange={onScreenShareChange}
-            onDeviceError={(error) =>
-              onDeviceError?.({ source: Track.Source.ScreenShare, error })
-            }
-          >
-            {screenOn ? t("broadcast.screenStop") : t("broadcast.screenStart")}
-          </TrackToggle>
-        ) : null}
-      </div>
 
-      <div ref={qualityAnchorRef} className="broadcast-control-bar-quality">
-        <button
-          type="button"
-          className={`lk-button broadcast-quality-trigger${qualityOpen ? " is-open" : ""}`}
-          aria-expanded={qualityOpen}
-          aria-haspopup="dialog"
-          onClick={() => setQualityOpen((v) => !v)}
-        >
-          <SlidersHorizontal size={16} aria-hidden="true" />
-          {t("broadcast.quality")}
-        </button>
-        <BroadcastSettingsMenu open={qualityOpen} onClose={closeQuality} />
-      </div>
+          <div ref={qualityAnchorRef} className="broadcast-control-bar-quality">
+            <button
+              type="button"
+              className={`lk-button broadcast-quality-trigger${qualityOpen ? " is-open" : ""}`}
+              aria-expanded={qualityOpen}
+              aria-haspopup="dialog"
+              onClick={() => setQualityOpen((v) => !v)}
+            >
+              <SlidersHorizontal size={16} aria-hidden="true" />
+              {t("broadcast.quality")}
+            </button>
+            <BroadcastSettingsMenu open={qualityOpen} onClose={closeQuality} />
+          </div>
         </div>
       </div>
     </footer>

@@ -6,7 +6,6 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { pageTransition } from "@/motion/presets";
 import { useHomeContentLock } from "@/hooks/useHomeContentLock";
-import { useEnsureGuestSession } from "@/hooks/useEnsureGuestSession";
 import { cn } from "@/lib/cn";
 import { homeContentLock, roomAppRoot, roomStageOutlet } from "@/ui";
 
@@ -23,7 +22,6 @@ export function RootLayout() {
   const isHome = location.pathname === "/";
   const isRoomStage = location.pathname.startsWith("/room/");
   useHomeContentLock(isHome);
-  useEnsureGuestSession();
 
   useEffect(() => {
     const onMove = (event: PointerEvent) => {

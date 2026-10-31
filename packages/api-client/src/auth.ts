@@ -104,6 +104,13 @@ export function createAuthApi(client: Client) {
   };
 }
 
+export type JoinRoomResponse = {
+  room_id: string;
+  participant_id: string;
+  role: string;
+  livekit?: LiveKitTokenResponse;
+};
+
 export function createRoomsApi(client: Client) {
   return {
     listPublic: () =>
@@ -130,12 +137,12 @@ export function createRoomsApi(client: Client) {
         password_required: boolean;
       }>(`/api/v1/rooms/${id}/preview`),
     join: (id: string, password?: string) =>
-      client.post<{ room_id: string; participant_id: string; role: string }>(
+      client.post<JoinRoomResponse>(
         `/api/v1/rooms/${id}/join`,
         password ? { password } : {},
       ),
     joinByCode: (code: string, password?: string) =>
-      client.post<{ room_id: string; participant_id: string; role: string }>(
+      client.post<JoinRoomResponse>(
         "/api/v1/rooms/join-by-code",
         { code, password: password ?? "" },
       ),

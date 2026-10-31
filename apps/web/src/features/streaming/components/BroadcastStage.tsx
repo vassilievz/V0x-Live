@@ -22,6 +22,10 @@ import {
   STAGE_IDLE_ART,
 } from "@/features/streaming/stageIdleMedia";
 
+function isLiveTrackRef(ref: TrackReferenceOrPlaceholder | undefined): boolean {
+  return !!ref && isTrackReference(ref) && ref.publication.track != null;
+}
+
 function sameTrackRef(
   a: TrackReferenceOrPlaceholder | undefined,
   b: TrackReferenceOrPlaceholder | undefined,
@@ -61,8 +65,9 @@ export function BroadcastStage() {
 
   const heroTrack = useMemo(() => pickHeroTrack(tracks), [tracks]);
   const pinned = usePinnedTracks(layoutContext)[0];
-  const mainTrack =
-    pinned && isTrackReference(pinned) ? pinned : heroTrack;
+  const pinnedLive =
+    pinned && isLiveTrackRef(pinned) && isTrackReference(pinned) ? pinned : undefined;
+  const mainTrack = pinnedLive ?? heroTrack;
 
   const stripTracks = tracks.filter(
     (t) => !mainTrack || !sameTrackRef(t, mainTrack),

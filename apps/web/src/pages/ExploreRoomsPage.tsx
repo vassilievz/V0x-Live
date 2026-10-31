@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowUpRight, Search, Users, WifiOff } from "lucide-react";
 import { Button, Input } from "@v0xlive/ui";
 import { roomsApi } from "@/lib/api";
+import { ensureGuestSession } from "@/lib/guestSession";
 import { cn } from "@/lib/cn";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
 import { SitePageHead } from "@/components/layout/SitePageHead";
@@ -41,9 +42,18 @@ function searchLocale(language: string): string {
 
 export function ExploreRoomsPage() {
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
   const locale = searchLocale(i18n.language);
   const rooms = useQuery({ queryKey: ["rooms", "public"], queryFn: () => roomsApi.listPublic(), retry: false });
+
+  useEffect(() => {
+    void ensureGuestSession(queryClient);
+  }, [queryClient]);
+
+  const prefetchGuest = () => {
+    void ensureGuestSession(queryClient);
+  };
   const items =
     rooms.data?.items.filter((room) =>
       room.name.toLocaleLowerCase(locale).includes(search.toLocaleLowerCase(locale)),
@@ -135,6 +145,8 @@ export function ExploreRoomsPage() {
                   className={roomCardExplore}
                   data-live={room.is_live ? "true" : "false"}
                   aria-label={t("explore.joinRoomAria", { name: room.name })}
+                  onPointerEnter={prefetchGuest}
+                  onFocus={prefetchGuest}
                 >
                   <div className={roomCardExploreHead}>
                     <span className={roomCardExploreStatus}>

@@ -2,14 +2,13 @@ package streaming
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/livekit/protocol/auth"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	apiauth "github.com/v0xlive/v0x-live/apps/api/internal/auth"
 	"github.com/v0xlive/v0x-live/apps/api/internal/config"
+	"github.com/v0xlive/v0x-live/apps/api/internal/livekitauth"
 	"github.com/v0xlive/v0x-live/apps/api/internal/httpx"
 	"github.com/v0xlive/v0x-live/apps/api/internal/rooms"
 )
@@ -21,13 +20,6 @@ type Handler struct {
 
 func NewHandler(cfg config.Config, roomSvc *rooms.Service) *Handler {
 	return &Handler{cfg: cfg, rooms: roomSvc}
-}
-
-type tokenResponse struct {
-	Token     string `json:"token"`
-	URL       string `json:"url"`
-	RoomName  string `json:"room_name"`
-	Identity  string `json:"identity"`
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
@@ -53,34 +45,11 @@ func (h *Handler) livekitToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	canPublish := part.CanPublish && !part.Muted
-	roomName := roomID.Hex()
-	identity := sess.ID.Hex()
-
-	at := auth.NewAccessToken(h.cfg.LiveKitAPIKey, h.cfg.LiveKitAPISecret)
-	canPub := canPublish
-	canSub := true
-	grant := &auth.VideoGrant{
-		RoomJoin:     true,
-		Room:         roomName,
-		CanPublish:   &canPub,
-		CanSubscribe: &canSub,
-	}
-	at.SetIdentity(identity).
-		SetName(part.DisplayName).
-		SetValidFor(15 * time.Minute).
-		AddGrant(grant)
-
-	jwt, err := at.ToJWT()
+	payload, err := livekitauth.MintParticipantToken(h.cfg, roomID, sess.ID, part)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "server_error", "Erro ao gerar token")
 		return
 	}
 
-	httpx.WriteJSON(w, http.StatusOK, tokenResponse{
-		Token:    jwt,
-		URL:      h.cfg.LiveKitURL,
-		RoomName: roomName,
-		Identity: identity,
-	})
+	httpx.WriteJSON(w, http.StatusOK, payload)
 }

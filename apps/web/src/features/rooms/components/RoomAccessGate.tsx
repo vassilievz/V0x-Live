@@ -6,6 +6,7 @@ import { ArrowUpRight, Radio } from "lucide-react";
 import {
   DEFAULT_GUEST_DISPLAY_NAME,
   type AuthUser,
+  type JoinRoomResponse,
 } from "@v0xlive/api-client";
 import { Button, Input } from "@v0xlive/ui";
 import { ApiError, authApi, roomsApi } from "@/lib/api";
@@ -38,7 +39,7 @@ type Props = {
   passwordRequired: boolean;
   hasSession: boolean;
   sessionUser?: AuthUser;
-  onJoined: (role: string) => void;
+  onJoined: (data: JoinRoomResponse) => void;
 };
 
 export function RoomAccessGate({
@@ -89,7 +90,7 @@ export function RoomAccessGate({
 
       return roomsApi.join(roomId, passwordRequired ? password : undefined);
     },
-    onSuccess: (data) => onJoined(data.role),
+    onSuccess: (data) => onJoined(data),
     onError: (err) =>
       setError(
         err instanceof ApiError && err.body.error === "wrong_password"
