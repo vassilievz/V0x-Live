@@ -41,6 +41,11 @@ export const es = {
     sessionAvatarHint: "Pega un enlace público. Vacío = iniciales.",
     sessionSave: "Guardar",
     sessionSaving: "Guardando…",
+    logout: "Cerrar sesión",
+    googleAccount: "Cuenta de Google",
+  },
+  auth: {
+    googleSignIn: "Iniciar sesión con Google",
   },
   footer: {
     aria: "Pie de página",

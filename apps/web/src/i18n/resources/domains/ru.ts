@@ -47,6 +47,9 @@ export const domainRu = {
     inviteCodePlaceholder: "Код приглашения",
     joinPending: "Вход…",
     join: "Войти",
+    myRooms: "Ваши сохранённые комнаты",
+    myRoomsEmpty: "На этом аккаунте пока нет комнат. Создайте ниже — они привязаны к профилю Google.",
+    authGoogleWelcome: "Аккаунт Google подключён. Имя и комнаты сохраняются в этом профиле.",
   },
   explore: {
     title: "Найди свой сигнал.",

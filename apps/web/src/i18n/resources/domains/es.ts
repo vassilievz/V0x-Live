@@ -47,6 +47,9 @@ export const domainEs = {
     inviteCodePlaceholder: "Código de invitación",
     joinPending: "Entrando…",
     join: "Entrar",
+    myRooms: "Tus salas guardadas",
+    myRoomsEmpty: "Aún no hay salas en esta cuenta. Crea una abajo — quedan vinculadas a tu perfil de Google.",
+    authGoogleWelcome: "Cuenta de Google conectada. Tu nombre y tus salas se guardan en este perfil.",
   },
   explore: {
     title: "Encuentra tu señal.",

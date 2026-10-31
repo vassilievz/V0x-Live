@@ -41,6 +41,11 @@ export const ru = {
     sessionAvatarHint: "Публичная ссылка на изображение. Пусто — инициалы.",
     sessionSave: "Сохранить",
     sessionSaving: "Сохранение…",
+    logout: "Выйти",
+    googleAccount: "Аккаунт Google",
+  },
+  auth: {
+    googleSignIn: "Войти через Google",
   },
   footer: {
     aria: "Подвал",
