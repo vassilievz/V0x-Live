@@ -5,19 +5,6 @@ set -eu
 log() { printf '=== V0X LIVEKIT === %s\n' "$*" >&2; }
 yesc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 
-wait_for_tcp_listen() {
-  _port="$1"
-  _attempt=0
-  while [ "$_attempt" -lt 40 ]; do
-    if ss -ltn 2>/dev/null | grep -q ":${_port} "; then
-      return 0
-    fi
-    _attempt=$((_attempt + 1))
-    sleep 0.25
-  done
-  return 1
-}
-
 apply_railway_rtc_env() {
   # LiveKit merges LIVEKIT_* env over the YAML file; Railway may set tcp_port to 7881.
   export LIVEKIT_RTC_TCP_PORT="$ICE_TCP_PORT"
@@ -163,21 +150,9 @@ if [ -n "$BRIDGE_FROM" ] && [ "$BRIDGE_FROM" != "$ICE_TCP_PORT" ]; then
     exit 1
   fi
 
-  # LiveKit must bind the public proxy port first; socat owns :7881 for Railway ingress.
-  /livekit-server --config "$CONFIG" &
-  LKPID=$!
-  if ! wait_for_tcp_listen "$ICE_TCP_PORT"; then
-    log "FATAL: LiveKit não abriu TCP :${ICE_TCP_PORT}. Verifique LIVEKIT_RTC_TCP_PORT no serviço (deve ser ${ICE_TCP_PORT}, não ${BRIDGE_FROM})."
-    kill "$LKPID" 2>/dev/null || true
-    wait "$LKPID" 2>/dev/null || true
-    exit 1
-  fi
-
   log "bridge :${BRIDGE_FROM} -> ${BRIDGE_TO}:${ICE_TCP_PORT}"
   socat TCP-LISTEN:"$BRIDGE_FROM",fork,reuseaddr \
     TCP:"$BRIDGE_TO":"$ICE_TCP_PORT",retry=5,interval=1 &
-
-  exec tini -s -- sh -c "wait $LKPID"
 fi
 
 exec tini -s -- /livekit-server --config "$CONFIG"

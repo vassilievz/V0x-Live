@@ -8,6 +8,8 @@ watchPatterns = [
 
 [deploy]
 restartPolicyType = "ON_FAILURE"
+healthcheckPath = "/"
+healthcheckTimeout = 120
 
-# Variables: REDIS_URL (ou REDISHOST/…), LIVEKIT_KEYS
+# Variables: REDIS_URL, LIVEKIT_KEYS, PORT=8080 (com TCP proxy na 7881)
 # Painel: Settings → Config-as-code → infrastructure/livekit/railway.toml

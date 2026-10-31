@@ -143,6 +143,8 @@ No LiveKit: **Add variable → Reference** → serviço Redis → `REDIS_URL`.
 
 **Networking:** Custom domain `lklive.v0x.lol` + **TCP Proxy** container port **7881** (mídia).
 
+**Settings → Deploy → Health Check** (se existir no painel): path **`/`**, timeout **≥ 60s**. LiveKit responde `OK` na raiz. Health check errado (`/health`) causa **restart em loop** nos logs (novo `nodeID` a cada ~1s).
+
 ---
 
 ## Porque “voltava ao original”
