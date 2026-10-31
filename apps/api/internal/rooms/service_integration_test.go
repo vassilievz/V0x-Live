@@ -267,6 +267,42 @@ func TestIntegrationPublicRoomOwnerResumesHostWithNewSession(t *testing.T) {
 	}
 }
 
+func TestIntegrationListPublicCountsActiveParticipants(t *testing.T) {
+	_, svc, sessions := setupIntegration(t)
+	host := guestSession(t, sessions, "Host")
+	room, err := svc.Create(context.Background(), host, CreateInput{
+		Name:            "Contagem",
+		Visibility:      models.VisibilityPublic,
+		MaxParticipants: 10,
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	visitor := guestSession(t, sessions, "Visitante")
+	if _, err := svc.Join(context.Background(), room.ID, visitor, JoinInput{}); err != nil {
+		t.Fatalf("Join visitor: %v", err)
+	}
+
+	items, err := svc.ListPublic(context.Background())
+	if err != nil {
+		t.Fatalf("ListPublic: %v", err)
+	}
+	var found *PublicRoomItem
+	for i := range items {
+		if items[i].ID == room.ID.Hex() {
+			found = &items[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatal("room missing from public list")
+	}
+	if found.ParticipantCount != 2 {
+		t.Fatalf("participant_count = %d want 2 (host + visitor)", found.ParticipantCount)
+	}
+}
+
 func TestIntegrationRoomPurgedWhenLastParticipantLeaves(t *testing.T) {
 	_, svc, sessions := setupIntegration(t)
 	host := guestSession(t, sessions, "Host")

@@ -76,37 +76,10 @@ func previewFresh(updatedAt time.Time, jpeg []byte) bool {
 }
 
 func (s *Service) ListPublic(ctx context.Context) ([]PublicRoomItem, error) {
-	pipeline := mongo.Pipeline{
-		{{Key: "$match", Value: bson.M{
-			"visibility": models.VisibilityPublic,
-			"status":     models.StatusActive,
-		}}},
-		{{Key: "$sort", Value: bson.M{"updated_at": -1}}},
-		{{Key: "$limit", Value: 50}},
-		{{Key: "$lookup", Value: bson.M{
-			"from": "room_participants",
-			"let":  bson.M{"rid": "$_id"},
-			"pipeline": bson.A{
-				bson.M{"$match": bson.M{
-					"$expr": bson.M{"$and": bson.A{
-						bson.M{"$eq": bson.A{"$room_id", "$$rid"}},
-						bson.M{"$eq": bson.A{"$left_at", nil}},
-					}},
-				}},
-			},
-			"as": "active",
-		}}},
-		{{Key: "$project", Value: bson.M{
-			"name":              1,
-			"description":       1,
-			"count":             bson.M{"$size": "$active"},
-			"broadcast_active":  1,
-			"preview_jpeg":      1,
-			"preview_updated_at": 1,
-		}}},
-	}
-
-	cur, err := s.rooms.Aggregate(ctx, pipeline)
+	cur, err := s.rooms.Find(ctx, bson.M{
+		"visibility": models.VisibilityPublic,
+		"status":     models.StatusActive,
+	}, options.Find().SetSort(bson.M{"updated_at": -1}).SetLimit(50))
 	if err != nil {
 		return nil, err
 	}
@@ -114,25 +87,28 @@ func (s *Service) ListPublic(ctx context.Context) ([]PublicRoomItem, error) {
 
 	items := make([]PublicRoomItem, 0)
 	for cur.Next(ctx) {
-		var row struct {
-			ID               primitive.ObjectID `bson:"_id"`
-			Name             string             `bson:"name"`
-			Description      string             `bson:"description"`
-			Count            int                `bson:"count"`
-			BroadcastActive  bool               `bson:"broadcast_active"`
-			PreviewJPEG      []byte             `bson:"preview_jpeg"`
-			PreviewUpdatedAt time.Time          `bson:"preview_updated_at"`
-		}
-		if err := cur.Decode(&row); err != nil {
+		var room models.Room
+		if err := cur.Decode(&room); err != nil {
 			return nil, err
 		}
-		hasPreview := previewFresh(row.PreviewUpdatedAt, row.PreviewJPEG)
+		if err := s.PruneStaleParticipants(ctx, room.ID); err != nil {
+			return nil, err
+		}
+		count, err := s.activeCount(ctx, room.ID)
+		if err != nil {
+			return nil, err
+		}
+		if count == 0 {
+			_, _ = s.tryDeleteRoomIfEmpty(ctx, room.ID)
+			continue
+		}
+		hasPreview := previewFresh(room.PreviewUpdatedAt, room.PreviewJPEG)
 		items = append(items, PublicRoomItem{
-			ID:               row.ID.Hex(),
-			Name:             row.Name,
-			Description:      row.Description,
-			ParticipantCount: row.Count,
-			IsLive:           row.BroadcastActive,
+			ID:               room.ID.Hex(),
+			Name:             room.Name,
+			Description:      room.Description,
+			ParticipantCount: int(count),
+			IsLive:           room.BroadcastActive,
 			HasPreview:       hasPreview,
 		})
 	}
