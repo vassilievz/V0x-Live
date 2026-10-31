@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/cn";
+import { googleAuthStartUrl } from "@/lib/api";
 import { googleSignInLink } from "@/ui";
-
-const GOOGLE_AUTH_START = "/api/v1/auth/google";
 
 function GoogleMark() {
   return (
@@ -41,7 +40,7 @@ export function GoogleSignInButton({ className }: GoogleSignInButtonProps) {
   const { t } = useTranslation();
 
   return (
-    <a href={GOOGLE_AUTH_START} className={cn(googleSignInLink, className)}>
+    <a href={googleAuthStartUrl()} className={cn(googleSignInLink, className)}>
       <GoogleMark />
       <span className="truncate">{t("auth.googleSignIn")}</span>
     </a>

@@ -19,6 +19,17 @@ export const statsApi = createStatsApi(api);
 export const presenceApi = createPresenceApi(api);
 export { ApiError } from "@v0xlive/api-client";
 
+/** API origin in prod (`VITE_API_URL`); empty in dev → same-origin + Vite proxy. */
+export function getApiBaseUrl(): string {
+  return baseUrl.replace(/\/$/, "");
+}
+
+export function googleAuthStartUrl(): string {
+  const path = "/api/v1/auth/google";
+  const origin = getApiBaseUrl();
+  return origin ? `${origin}${path}` : path;
+}
+
 export function getWsUrl(roomId: string): string {
   const path = `/api/v1/realtime/ws?room_id=${encodeURIComponent(roomId)}`;
   const wsBase = import.meta.env.VITE_WS_URL?.replace(/\/$/, "");
