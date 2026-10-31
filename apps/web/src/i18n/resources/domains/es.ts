@@ -229,6 +229,10 @@ export const domainEs = {
       "⚠️ Modo catálogo: el dueño cambia el título para todos. Play, pausa y tiempo NO se sincronizan solos — acuerden en voz cuándo dar play.",
     catalogWarningShort:
       "Reproductor externo: play/pausa no se sincronizan solos — acuerden en la llamada.",
+    embedLoadHelpTrigger: "⚠️ ¿El video no carga?",
+    embedLoadHelpTitle: "¿Tu operadora bloquea el reproductor?",
+    embedLoadHelpBody:
+      "Algunas operadoras bloquean el player en el DNS. Usa cualquier VPN o la app gratuita Cloudflare WARP (1.1.1.1) en PC o móvil y recarga la página.",
     catalogSearchPlaceholder: "Buscar película, serie o anime por nombre…",
     catalogFilterAll: "Todos",
     catalogFilterSeries: "Series",

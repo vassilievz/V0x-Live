@@ -809,3 +809,17 @@
   border: 0;
   background: #000;
 }
+
+.broadcast-stage-cine-vpn-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.broadcast-stage-cine-vpn-help {
+  margin: 0;
+  text-align: left;
+}

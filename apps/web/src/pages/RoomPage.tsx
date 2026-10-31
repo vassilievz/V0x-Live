@@ -7,11 +7,10 @@ import { Button } from "@v0xlive/ui";
 import { ApiError, roomsApi } from "@/lib/api";
 import type { JoinRoomResponse, LiveKitTokenResponse } from "@v0xlive/api-client";
 import { cn } from "@/lib/cn";
-import { useEnsureGuestSession } from "@/hooks/useEnsureGuestSession";
-import { RoomEntryLoading } from "@/features/rooms/components/RoomEntryLoading";
 import { ensureGuestSession, syncSessionUser } from "@/lib/guestSession";
 import { isReloadNavigation } from "@/lib/navigationType";
 import { soundEffects } from "@/utils/soundEffects";
+import { RoomEntryLoading } from "@/features/rooms/components/RoomEntryLoading";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
 import { LiveKitStage } from "@/features/streaming/components/LiveKitStage";
@@ -25,7 +24,8 @@ import {
 } from "@/features/participants/components/ParticipantsPanel";
 import { RoomStageShell } from "@/features/rooms/components/RoomStageShell";
 import {
-  mayAutoJoinFromEntry,
+  mayAutoJoinRoomEntry,
+  needsNickEntryGate,
   needsRoomInviteGate,
 } from "@/features/rooms/roomEntryPolicy";
 import {
@@ -59,16 +59,24 @@ export function RoomPage() {
   const prejoinApplied = useRef(false);
   const joinedRef = useRef(false);
 
-  const session = useSessionUser();
-  const { ensuring } = useEnsureGuestSession();
+  const session = useSessionUser({ bootstrapGuest: false });
 
-  const preview = useQuery({
-    queryKey: ["room-preview", roomId],
+  const roomMeta = useQuery({
+    queryKey: ["room-preview-public", roomId],
+    queryFn: () => roomsApi.preview(roomId!),
+    enabled: Boolean(roomId),
+    staleTime: 60_000,
+  });
+
+  const entry = useQuery({
+    queryKey: ["room-entry", roomId],
     queryFn: () => roomsApi.entry(roomId!),
-    enabled: !!roomId && session.isSuccess,
+    enabled: Boolean(roomId) && session.isSuccess,
+    staleTime: 0,
   });
 
   const hasSession = session.isSuccess;
+  const entryInfo = entry.data;
 
   const applyJoinSuccess = (data: JoinRoomResponse) => {
     setRole(data.role);
@@ -120,15 +128,15 @@ export function RoomPage() {
     if (!roomId || joined || join.isPending || autoJoinDone.current) {
       return;
     }
-    if (!session.isSuccess || !preview.data) {
+    if (!session.isSuccess || !entryInfo) {
       return;
     }
-    if (!mayAutoJoinFromEntry(preview.data) && !preview.data.can_resume) {
+    if (!mayAutoJoinRoomEntry(entryInfo, session.data, hasSession)) {
       return;
     }
     autoJoinDone.current = true;
     joinRoom(undefined);
-  }, [roomId, joined, session.isSuccess, preview.data, join.isPending, joinRoom]);
+  }, [roomId, joined, session.isSuccess, session.data, hasSession, entryInfo, join.isPending, joinRoom]);
 
   useQuery({
     queryKey: ["participants", roomId],
@@ -198,8 +206,8 @@ export function RoomPage() {
   });
 
   useEffect(() => {
-    document.title = `${t("meta.siteTitle")} | ${preview.data?.name ?? t("room.liveTitle")}`;
-  }, [preview.data?.name, t, i18n.language]);
+    document.title = `${t("meta.siteTitle")} | ${entryInfo?.name ?? roomMeta.data?.name ?? t("room.liveTitle")}`;
+  }, [entryInfo?.name, roomMeta.data?.name, t, i18n.language]);
 
   useEffect(() => {
     if (lastEvent?.type !== "room.closed") {
@@ -213,18 +221,23 @@ export function RoomPage() {
     return null;
   }
 
-  const roomName = preview.data?.name ?? t("room.defaultName");
-  const waitingSession =
-    ((session.isLoading || session.isFetching) && !session.data) ||
-    ensuring ||
-    ((preview.isLoading || preview.isFetching) && !preview.data);
-  const needsInviteGate = preview.data ? needsRoomInviteGate(preview.data) : false;
+  const roomName = entryInfo?.name ?? roomMeta.data?.name ?? t("room.defaultName");
+  const authReady = session.isFetched;
+  const metaReady = Boolean(roomMeta.data) || roomMeta.isError;
+  const entryReady = !hasSession || entry.isFetched;
+  const waitingSession = !authReady || !metaReady || !entryReady;
+  const needsInviteGate = entryInfo ? needsRoomInviteGate(entryInfo) : false;
+  const needsNickGate = entryInfo
+    ? needsNickEntryGate(entryInfo, session.data, hasSession)
+    : !hasSession && metaReady && !roomMeta.isError;
 
   const showGate =
     !joined &&
     !join.isPending &&
     !waitingSession &&
-    (!hasSession || preview.data?.password_required === true || needsInviteGate);
+    (needsNickGate ||
+      needsInviteGate ||
+      (entryInfo?.password_required ?? roomMeta.data?.password_required) === true);
 
   const showStage = joined || join.isPending || join.isError;
 
@@ -232,7 +245,7 @@ export function RoomPage() {
     return <RoomEntryLoading />;
   }
 
-  if (preview.isError) {
+  if (roomMeta.isError && !entryInfo) {
     return (
       <SiteCatalogShell>
         <section className={cn(homeBentoPanel, sitePanel)}>
@@ -252,7 +265,7 @@ export function RoomPage() {
       <RoomAccessGate
         roomId={roomId}
         roomName={roomName}
-        passwordRequired={preview.data?.password_required ?? false}
+        passwordRequired={entryInfo?.password_required ?? roomMeta.data?.password_required ?? false}
         inviteCodeRequired={needsInviteGate}
         hasSession={hasSession}
         sessionUser={session.data}
@@ -294,7 +307,7 @@ export function RoomPage() {
       hostShareRoomId={role === "host" ? roomId : undefined}
       hostInviteCode={hostRoomDetails.data?.invite_code}
       hostRoomPrivate={
-        (hostRoomDetails.data?.visibility ?? preview.data?.visibility ?? "public") === "private"
+        (hostRoomDetails.data?.visibility ?? entryInfo?.visibility ?? roomMeta.data?.visibility ?? "public") === "private"
       }
       main={
         <>

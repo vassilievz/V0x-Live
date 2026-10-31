@@ -54,6 +54,7 @@ export function RoomCineStage() {
     direct;
 
   const [fs, setFs] = useState(false);
+  const [vpnHelpOpen, setVpnHelpOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -167,6 +168,22 @@ export function RoomCineStage() {
           >
             {fs ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
           </button>
+        </div>
+        <div className="broadcast-stage-cine-vpn-bar">
+          <button
+            type="button"
+            className="lk-button text-xs"
+            aria-expanded={vpnHelpOpen}
+            onClick={() => setVpnHelpOpen((open) => !open)}
+          >
+            {t("cine.embedLoadHelpTrigger")}
+          </button>
+          {vpnHelpOpen ? (
+            <div className={cn(notice, "broadcast-stage-cine-vpn-help")} role="note">
+              <p className="font-medium text-foreground">{t("cine.embedLoadHelpTitle")}</p>
+              <p className="mt-2 text-sm leading-relaxed">{t("cine.embedLoadHelpBody")}</p>
+            </div>
+          ) : null}
         </div>
         <iframe
           key={state.embed_url}

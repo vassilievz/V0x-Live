@@ -229,6 +229,10 @@ export const domainEn = {
       "⚠️ Catalog mode: when the owner picks or changes a title, it opens for everyone. External player — play, pause, and time do NOT sync automatically. Agree in voice when to press play or share the minute if someone is behind.",
     catalogWarningShort:
       "External player: play/pause do not sync automatically — agree in voice when to press play.",
+    embedLoadHelpTrigger: "⚠️ Video won't load?",
+    embedLoadHelpTitle: "ISP blocking the player?",
+    embedLoadHelpBody:
+      "Some ISPs block the player on DNS. Use any VPN or the free Cloudflare WARP (1.1.1.1) app on desktop or mobile, then reload the page.",
     catalogSearchPlaceholder: "Search movies, series, or anime by name…",
     catalogFilterAll: "All",
     catalogFilterSeries: "Series",

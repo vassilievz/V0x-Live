@@ -1,6 +1,16 @@
 import type { RoomEntryInfo } from "@v0xlive/api-client";
 
-/** Whether the client may call join without showing the access gate. */
+export {
+  isAuthenticatedMember,
+  isDefaultGuestDisplayName,
+  isNickConfirmedThisSession,
+  markNickConfirmedThisSession,
+  mayAutoJoinRoomEntry,
+  needsNickEntryGate,
+  NICK_CONFIRMED_STORAGE_KEY,
+} from "./roomNickGate";
+
+/** Whether join may run without the access gate (ignoring nick policy). */
 export function mayAutoJoinFromEntry(entry: RoomEntryInfo): boolean {
   if (entry.password_required) {
     return false;

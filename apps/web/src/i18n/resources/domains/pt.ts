@@ -228,6 +228,10 @@ export const domainPt = {
       "⚠️ Como funciona o modo Catálogo: quando o dono escolhe ou troca o filme/episódio, abre na tela de todos. Porém, por ser player externo, o play, pause e o tempo NÃO sincronizam sozinhos — combinem na call o momento de dar play ou digam o minuto se alguém atrasar.",
     catalogWarningShort:
       "Player externo: play/pause não sincronizam automaticamente — combinem na call quando der play.",
+    embedLoadHelpTrigger: "⚠️ Vídeo não carrega?",
+    embedLoadHelpTitle: "Bloqueio da operadora?",
+    embedLoadHelpBody:
+      "Algumas operadoras bloqueiam o player no DNS. Use qualquer VPN ou o app gratuito Cloudflare WARP (1.1.1.1) no PC ou celular e recarregue a página.",
     catalogSearchPlaceholder: "Pesquisar filme, série ou anime pelo nome…",
     catalogFilterAll: "Todos",
     catalogFilterSeries: "Séries",

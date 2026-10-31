@@ -11,6 +11,7 @@ import {
 import { Button, Input } from "@v0xlive/ui";
 import { ApiError, authApi, roomsApi } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import { markNickConfirmedThisSession } from "@/features/rooms/roomEntryPolicy";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
 import {
   authForm,
@@ -79,14 +80,19 @@ export function RoomAccessGate({
       const trimmedName = displayName.trim();
 
       if (!hasSession) {
-        if (trimmedName.length < 2) {
+        if (trimmedName.length < 2 || trimmedName.length > 24) {
           throw new Error(t("room.gateNameMin"));
         }
         const user = await authApi.guest(trimmedName, "");
         queryClient.setQueryData(["auth", "me"], user);
+        markNickConfirmedThisSession();
       } else if (showNameField && trimmedName.length >= 2) {
+        if (trimmedName.length > 24) {
+          throw new Error(t("room.gateNameMin"));
+        }
         const user = await authApi.updateMe({ display_name: trimmedName });
         queryClient.setQueryData(["auth", "me"], user);
+        markNickConfirmedThisSession();
       } else if (showNameField && trimmedName.length > 0 && trimmedName.length < 2) {
         throw new Error(t("room.gateNameMin"));
       }
@@ -95,7 +101,10 @@ export function RoomAccessGate({
         ? roomsApi.joinByCode(inviteCode.trim(), passwordRequired ? password : undefined)
         : roomsApi.join(roomId, passwordRequired ? password : undefined);
     },
-    onSuccess: (data) => onJoined(data),
+    onSuccess: (data) => {
+      markNickConfirmedThisSession();
+      onJoined(data);
+    },
     onError: (err) =>
       setError(
         err instanceof ApiError && err.body.error === "wrong_password"
@@ -148,8 +157,9 @@ export function RoomAccessGate({
                   onChange={(e) => setDisplayName(e.target.value)}
                   autoComplete="nickname"
                   minLength={2}
-                  maxLength={64}
-                  required={!hasSession}
+                  maxLength={24}
+                  required={showNameField}
+                  autoFocus
                   placeholder={t("room.gateNamePlaceholder")}
                 />
               </div>

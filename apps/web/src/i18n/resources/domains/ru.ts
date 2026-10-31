@@ -229,6 +229,10 @@ export const domainRu = {
       "⚠️ Каталог: владелец меняет фильм/серию для всех. Play/pause/время не синхронизируются сами — договоритесь в голосе.",
     catalogWarningShort:
       "Внешний плеер: play/pause не синхронизируются — договоритесь в голосе.",
+    embedLoadHelpTrigger: "⚠️ Видео не загружается?",
+    embedLoadHelpTitle: "Провайдер блокирует плеер?",
+    embedLoadHelpBody:
+      "Некоторые провайдеры блокируют плеер в DNS. Используйте любой VPN или бесплатное приложение Cloudflare WARP (1.1.1.1) и перезагрузите страницу.",
     catalogSearchPlaceholder: "Поиск фильма, сериала или аниме по названию…",
     catalogFilterAll: "Все",
     catalogFilterSeries: "Сериалы",
