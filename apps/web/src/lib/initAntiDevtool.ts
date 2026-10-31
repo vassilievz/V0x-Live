@@ -82,15 +82,20 @@ function attachDevtoolsShortcutBlocker(): void {
 }
 
 /**
- * Production-only DevTools deterrence: shortcut block + redirect when DevTools opens.
- * Skipped in dev so local debugging stays usable.
+ * DevTools deterrence (opt-in). Desligado por padrão para facilitar debug local e testes.
+ * Ative em build de produção com VITE_ENABLE_ANTI_DEVTOOL=true.
+ * Desligue explicitamente com VITE_DISABLE_ANTI_DEVTOOL=true.
  */
 export function initAntiDevtool(): void {
-  if (!import.meta.env.PROD) {
+  if (import.meta.env.DEV) {
     return;
   }
 
   if (import.meta.env.VITE_DISABLE_ANTI_DEVTOOL === "true") {
+    return;
+  }
+
+  if (import.meta.env.VITE_ENABLE_ANTI_DEVTOOL !== "true") {
     return;
   }
 

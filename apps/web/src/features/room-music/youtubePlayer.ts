@@ -43,6 +43,7 @@ export type YouTubePlayerHandle = {
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   getCurrentTime: () => number;
   setVolume: (volume: number) => void;
+  setSize: (width: number, height: number) => void;
   getPlayerState: () => number;
   getVideoData: () => YouTubeVideoData;
   loadVideoById: (videoIdOrOptions: string | YouTubeLoadOptions, startSeconds?: number) => void;
@@ -51,11 +52,31 @@ export type YouTubePlayerHandle = {
   destroy: () => void;
 };
 
+export function measureStagePlayerSize(host: HTMLElement): { width: number; height: number } {
+  const rect = host.getBoundingClientRect();
+  const width = Math.max(320, Math.floor(rect.width) || host.clientWidth || 640);
+  const height = Math.max(180, Math.floor(rect.height) || host.clientHeight || 360);
+  return { width, height };
+}
+
+export function fitStagePlayerToHost(
+  player: YouTubePlayerHandle,
+  host: HTMLElement,
+): { width: number; height: number } {
+  const { width, height } = measureStagePlayerSize(host);
+  try {
+    player.setSize(width, height);
+  } catch {
+    /* player not ready */
+  }
+  return { width, height };
+}
+
 declare global {
   interface Window {
     YT?: {
       Player: new (
-        elementId: string,
+        elementId: string | HTMLElement,
         options: {
           height?: string;
           width?: string;
@@ -64,6 +85,7 @@ declare global {
           events?: {
             onReady?: (event: { target: YouTubePlayerHandle }) => void;
             onStateChange?: (event: { data: number; target: YouTubePlayerHandle }) => void;
+            onError?: (event: { data: number; target: YouTubePlayerHandle }) => void;
           };
         },
       ) => YouTubePlayerHandle;

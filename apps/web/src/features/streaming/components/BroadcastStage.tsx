@@ -2,11 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { MonitorUp, Radio } from "lucide-react";
 import {
-  CarouselLayout,
-  FocusLayout,
-  FocusLayoutContainer,
   LayoutContextProvider,
-  ParticipantTile,
   RoomAudioRenderer,
   StartAudio,
   isTrackReference,
@@ -21,6 +17,8 @@ import { BroadcastControlBar } from "@/features/streaming/components/BroadcastCo
 import { STAGE_IDLE_ART } from "@/features/streaming/stageIdleMedia";
 import { useRoomDirectVideo } from "@/features/room-music/RoomDirectVideoContext";
 import { RoomDirectVideoStage } from "@/features/room-music/components/RoomDirectVideoStage";
+import { RoomYouTubeStage } from "@/features/room-music/components/RoomYouTubeStage";
+import { BroadcastScreenShareStage } from "@/features/streaming/components/BroadcastScreenShareStage";
 import { useRoomCine } from "@/features/room-cine/RoomCineContext";
 import { RoomCineStage } from "@/features/room-cine/components/RoomCineStage";
 import { cineStageReady } from "@/features/room-cine/cineStageReady";
@@ -73,10 +71,10 @@ export function BroadcastStage({ roomId, viewerRole }: { roomId?: string; viewer
   const pinnedLive =
     pinned && isLiveTrackRef(pinned) && isTrackReference(pinned) ? pinned : undefined;
   const mainTrack = pinnedLive ?? heroTrack;
-  const hasLiveVideo = Boolean(mainTrack && isTrackReference(mainTrack));
-  const showCine = cineStageReady(roomCine?.state) && !hasLiveVideo;
-  const showDirectWatchParty =
-    Boolean(directVideo?.isDirectActive) && !showCine && !hasLiveVideo;
+  const musicActive = Boolean(directVideo?.state?.active);
+  const showMusicStage = musicActive;
+  const showCine =
+    cineStageReady(roomCine?.state) && !musicActive;
 
   const stripTracks = tracks.filter(
     (t) => !mainTrack || !sameTrackRef(t, mainTrack),
@@ -119,21 +117,18 @@ export function BroadcastStage({ roomId, viewerRole }: { roomId?: string; viewer
   return (
     <BroadcastSettingsProvider>
       <LayoutContextProvider value={layoutContext}>
-        <div className="broadcast-stage">
+        <div className="broadcast-stage" data-vox-stage={showMusicStage ? "music" : showCine ? "cine" : "livekit"}>
           <div className="broadcast-stage-viewport">
-              {showCine ? (
+              {showMusicStage ? (
+                directVideo?.isDirectActive ? (
+                  <RoomDirectVideoStage />
+                ) : (
+                  <RoomYouTubeStage />
+                )
+              ) : showCine ? (
                 <RoomCineStage />
-              ) : showDirectWatchParty ? (
-                <RoomDirectVideoStage />
               ) : mainTrack && isTrackReference(mainTrack) ? (
-                <FocusLayoutContainer>
-                  {stripTracks.length > 0 ? (
-                    <CarouselLayout tracks={stripTracks}>
-                      <ParticipantTile />
-                    </CarouselLayout>
-                  ) : null}
-                  <FocusLayout trackRef={mainTrack} className="broadcast-stage-focus" />
-                </FocusLayoutContainer>
+                <BroadcastScreenShareStage mainTrack={mainTrack} stripTracks={stripTracks} />
               ) : (
                 <div className="broadcast-stage-idle" role="status">
                   <div className="broadcast-stage-idle-media" aria-hidden="true">

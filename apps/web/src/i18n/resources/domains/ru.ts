@@ -182,6 +182,7 @@ export const domainRu = {
     addedByDirect: "Прямое видео · добавил {{name}}",
     directFallbackTitle: "Видео в комнате",
     directLoadError: "Не удалось загрузить ссылку (CORS, истекла или недоступна).",
+    youtubeLoadError: "Не удалось загрузить плеер YouTube. Проверьте блокировщики или попробуйте другую ссылку.",
     syncPlayback: "Синхронизировать воспроизведение",
     seekAria: "Позиция в видео",
     directOnStageHint: "Воспроизведение на сцене эфира.",
@@ -223,6 +224,8 @@ export const domainRu = {
     dialogTitle: "Cine",
     close: "Закрыть",
     hostOnlyStatus: "Сессией Cine управляет владелец комнаты.",
+    syncedWithHost: "Синхронизировано с владельцем комнаты",
+    pausedByHost: "Поставлено на паузу владельцем комнаты",
     tabCatalog: "Каталог",
     tabDirect: "Прямая ссылка",
     catalogWarning:

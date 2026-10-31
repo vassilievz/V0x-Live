@@ -45,3 +45,36 @@ export function buildYouTubeEmbedId(state: {
   }
   return null;
 }
+
+/** URL de embed manual (legado); o palco usa `YT.Player` via `youtubePlayer.ts`. */
+export function buildYouTubeWatchEmbedUrl(
+  state: { video_id?: string; playlist_id?: string },
+  opts: { autoplay?: boolean; controls?: boolean; startSec?: number } = {},
+): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const embed = buildYouTubeEmbedId(state);
+  if (!embed) {
+    return null;
+  }
+  const params = new URLSearchParams({
+    enablejsapi: "1",
+    origin: window.location.origin,
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1",
+    autoplay: opts.autoplay ? "1" : "0",
+    controls: opts.controls ? "1" : "0",
+    disablekb: opts.controls ? "0" : "1",
+    fs: "0",
+  });
+  if (opts.startSec != null && opts.startSec > 0 && !embed.list) {
+    params.set("start", String(Math.floor(opts.startSec)));
+  }
+  if (embed.list) {
+    params.set("list", embed.list);
+    return `https://www.youtube.com/embed/videoseries?${params.toString()}`;
+  }
+  return `https://www.youtube.com/embed/${encodeURIComponent(embed.videoId)}?${params.toString()}`;
+}

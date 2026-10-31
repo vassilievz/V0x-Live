@@ -182,6 +182,7 @@ export const domainEs = {
     addedByDirect: "Vídeo directo · añadido por {{name}}",
     directFallbackTitle: "Vídeo en la sala",
     directLoadError: "No se pudo cargar el enlace (CORS, expirado o no disponible).",
+    youtubeLoadError: "No se pudo cargar el reproductor de YouTube. Revisa bloqueadores o prueba otro enlace.",
     syncPlayback: "Sincronizar reproducción",
     seekAria: "Posición del vídeo",
     directOnStageHint: "Se reproduce en el escenario en vivo.",
@@ -223,6 +224,8 @@ export const domainEs = {
     dialogTitle: "Cine",
     close: "Cerrar",
     hostOnlyStatus: "Sesión Cine controlada por el dueño de la sala.",
+    syncedWithHost: "Sincronizado con el dueño de la sala",
+    pausedByHost: "Pausado por el dueño de la sala",
     tabCatalog: "Catálogo",
     tabDirect: "Enlace directo",
     catalogWarning:

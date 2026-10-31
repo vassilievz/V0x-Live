@@ -69,9 +69,6 @@ func (m *Manager) CreateGuest(ctx context.Context, displayName, avatarURL string
 		return "", Session{}, err
 	}
 	id, _ := res.InsertedID.(primitive.ObjectID)
-	if err := m.RevokeOtherGuests(ctx, id); err != nil {
-		return "", Session{}, err
-	}
 	sess = Session{
 		ID:               id,
 		IsGuest:          true,

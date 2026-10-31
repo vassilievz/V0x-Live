@@ -127,8 +127,8 @@ export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: Broad
   }, [qualityOpen]);
 
   const canPublishSource = (source: Track.Source) => {
-    if (!localPermissions?.canPublish) return false;
-    if (localPermissions.canPublishSources.length === 0) return true;
+    if (localPermissions && !localPermissions.canPublish) return false;
+    if (!localPermissions || localPermissions.canPublishSources.length === 0) return true;
     const protocol = (() => {
       switch (source) {
         case Track.Source.Camera:

@@ -178,6 +178,7 @@
   align-items: stretch;
   gap: 6px;
   min-width: 0;
+  justify-content: flex-start;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
@@ -275,7 +276,7 @@
 @media (min-width: 900px) {
   .broadcast-control-bar-track {
     flex-wrap: nowrap;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .broadcast-control-bar-item {
@@ -822,4 +823,197 @@
 .broadcast-stage-cine-vpn-help {
   margin: 0;
   text-align: left;
+}
+
+.broadcast-stage-cine-viewer-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  cursor: default;
+  background: transparent;
+}
+
+.broadcast-stage-direct-video--locked {
+  pointer-events: none;
+}
+
+.broadcast-stage-viewer-dock {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lk-control-bar.broadcast-control-bar {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border-radius: 12px !important;
+  flex-wrap: nowrap;
+}
+
+.broadcast-stage-youtube-shell {
+  position: absolute;
+  inset: 0;
+}
+
+.broadcast-stage-youtube-host {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  overflow: hidden;
+  background: #000;
+}
+
+.broadcast-stage-youtube-host iframe {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0;
+}
+
+.broadcast-stage-youtube-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.broadcast-stage-youtube-action-btn {
+  display: inline-flex;
+  min-height: 36px;
+  min-width: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: rgb(0 0 0 / 55%);
+  color: rgb(255 255 255 / 92%);
+  backdrop-filter: blur(8px);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.broadcast-stage-youtube-action-btn:hover {
+  background: rgb(0 0 0 / 72%);
+  border-color: rgb(255 255 255 / 28%);
+}
+
+.broadcast-stage-youtube-banner {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  pointer-events: auto;
+}
+
+.broadcast-stage-youtube-banner--error {
+  background: rgb(120 24 24 / 82%);
+  color: rgb(255 240 240 / 96%);
+}
+
+.broadcast-stage-youtube-unlock {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.broadcast-stage-youtube-poster {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.broadcast-stage-youtube-frame iframe {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.broadcast-stage-youtube-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.broadcast-screen-share-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: #000;
+}
+
+.broadcast-screen-share-shell--hero {
+  min-width: 0;
+}
+
+.broadcast-screen-share-shell--fs,
+.broadcast-screen-share-shell--fs:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+}
+
+.broadcast-screen-share-fs {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+}
+
+.broadcast-stage-screen-only {
+  padding: 0;
+}
+
+.broadcast-stage-screen-only .lk-participant-tile,
+.broadcast-stage-screen-only .lk-participant-tile video {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.broadcast-stage-live-layout {
+  width: 100%;
+  height: 100%;
+}
+
+.broadcast-stage-focus-wrap {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.broadcast-stage-screen-only .lk-focus-layout,
+.broadcast-stage-live-layout .lk-focus-layout:has(.lk-carousel) {
+  grid-template-columns: minmax(140px, 22%) 1fr;
+}
+
+.broadcast-stage-screen-only .lk-focus-layout:not(:has(.lk-carousel)) {
+  grid-template-columns: 1fr;
+  padding: 0;
+  gap: 0;
 }

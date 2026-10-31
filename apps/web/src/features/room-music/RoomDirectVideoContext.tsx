@@ -25,6 +25,7 @@ type RoomDirectVideoContextValue = {
   setVolume: (value: number) => void;
   state: RoomMusicState | undefined;
   isDirectActive: boolean;
+  isYouTubeActive: boolean;
   canControl: boolean;
   canRemoveMusic: boolean;
   direct: DirectEngine;
@@ -75,6 +76,7 @@ export function RoomDirectVideoProvider({ roomId, lastEvent, viewerRole, childre
 
   const state = music.data;
   const isDirectActive = state?.active === true && state.platform === "direct";
+  const isYouTubeActive = state?.active === true && state.platform !== "direct";
   const canControl = state?.can_control === true;
   const canRemoveMusic = canControl || viewerRole === "host";
 
@@ -98,7 +100,12 @@ export function RoomDirectVideoProvider({ roomId, lastEvent, viewerRole, childre
       void document.exitFullscreen();
       return;
     }
-    void target.requestFullscreen?.();
+    const req =
+      target.requestFullscreen?.bind(target) ??
+      (target as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen?.bind(
+        target,
+      );
+    void req?.();
   }, []);
 
   const value = useMemo(
@@ -111,6 +118,7 @@ export function RoomDirectVideoProvider({ roomId, lastEvent, viewerRole, childre
       setVolume,
       state,
       isDirectActive,
+      isYouTubeActive,
       canControl,
       canRemoveMusic,
       direct,
@@ -124,6 +132,7 @@ export function RoomDirectVideoProvider({ roomId, lastEvent, viewerRole, childre
       clearMutation.mutate,
       direct,
       isDirectActive,
+      isYouTubeActive,
       patchMutation.mutate,
       queryClient,
       requestStageFullscreen,

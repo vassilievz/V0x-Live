@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { RoomMusicPatchBody, RoomMusicState } from "@v0xlive/api-client";
 import type { QueryClient } from "@tanstack/react-query";
 import { buildYouTubeEmbedId } from "@/features/room-music/youtube";
@@ -8,8 +8,10 @@ import { mergeMusicState, transportSyncToken } from "@/features/room-music/playe
 import {
   YT_CUED,
   YT_PLAYING,
+  fitStagePlayerToHost,
   loadRemoteVideo,
   loadYouTubeIframeAPI,
+  measureStagePlayerSize,
   readVideoData,
   type YouTubePlayerHandle,
 } from "@/features/room-music/youtubePlayer";
@@ -29,24 +31,29 @@ type PatchFn = (body: RoomMusicPatchBody) => void;
 
 type Args = {
   roomId: string;
-  frameId: string;
+  playerHostRef: RefObject<HTMLDivElement | null>;
+  playerHostElement: HTMLDivElement | null;
   volume: number;
   state: RoomMusicState | undefined;
   active: boolean;
   canControl: boolean;
   patch: PatchFn;
   queryClient: QueryClient;
+  /** Player visível no palco (controles nativos do YouTube). */
+  stageVisible?: boolean;
 };
 
 export function useRoomMusicYouTube({
   roomId,
-  frameId,
+  playerHostRef,
+  playerHostElement,
   volume,
   state,
   active,
   canControl,
   patch,
   queryClient,
+  stageVisible = true,
 }: Args) {
   const playerRef = useRef<YouTubePlayerHandle | null>(null);
   const applyingRemote = useRef(false);
@@ -55,8 +62,12 @@ export function useRoomMusicYouTube({
   const loadedVideoId = useRef<string | null>(null);
   const lastSyncedVideoId = useRef<string | null>(null);
   const syncTrackInFlight = useRef(false);
+  const playerInitGenRef = useRef(0);
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const [localPlaying, setLocalPlaying] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
+  const [playerError, setPlayerError] = useState(false);
 
   const bumpLocalGuard = useCallback((ms = LOCAL_GUARD_MS) => {
     localGuardUntil.current = Date.now() + ms;
@@ -188,7 +199,12 @@ export function useRoomMusicYouTube({
     state?.playlist_id?.trim() || state?.video_id?.trim() || "";
 
   useEffect(() => {
-    if (!active || !state || !playerSessionKey) {
+    const host = playerHostElement ?? playerHostRef.current;
+    if (typeof window !== "undefined") {
+      (window as any).__ytEffectCount = ((window as any).__ytEffectCount || 0) + 1;
+      (window as any).__ytEffectLast = { active, hasState: !!state, key: playerSessionKey, hasHost: !!host, connected: host?.isConnected, yt: !!window.YT?.Player };
+    }
+    if (!active || !state || !playerSessionKey || !host) {
       playerRef.current?.destroy();
       playerRef.current = null;
       setPlayerReady(false);
@@ -199,64 +215,124 @@ export function useRoomMusicYouTube({
     if (!embed) return;
 
     let cancelled = false;
-    void loadYouTubeIframeAPI().then(() => {
-      if (cancelled || !window.YT || playerRef.current) return;
+    let resizeObserver: ResizeObserver | null = null;
+    const initGen = ++playerInitGenRef.current;
+    setPlayerError(false);
 
-      const snapshot = state;
-      playerRef.current = new window.YT.Player(frameId, {
-        height: "1",
-        width: "1",
-        videoId: embed.videoId,
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          modestbranding: 1,
-          rel: 0,
-          ...(embed.list ? { listType: "playlist", list: embed.list } : {}),
-        },
-        events: {
-          onReady: (event) => {
-            event.target.setVolume(volume);
-            const initialId =
-              trackVideoId(snapshot.video_id) ??
-              trackVideoId(readVideoData(event.target)?.video_id) ??
-              trackVideoId(embed.videoId);
-            loadedVideoId.current = initialId ?? embed.videoId;
-            lastSyncedVideoId.current = trackVideoId(loadedVideoId.current) ?? loadedVideoId.current;
-            lastTransportToken.current = transportSyncToken(snapshot);
-            if (snapshot.playing) {
-              const pos = expectedPositionSec(snapshot);
-              event.target.seekTo(pos, true);
-              event.target.playVideo();
-              setLocalPlaying(true);
-            }
-            setPlayerReady(true);
+    let sizeAttempts = 0;
+    const createPlayer = () => {
+      console.log("[YT create] initGen=", initGen, "current=", playerInitGenRef.current, "cancelled=", cancelled, "yt=", !!window.YT?.Player);
+      if (cancelled || initGen !== playerInitGenRef.current || !window.YT?.Player) {
+        console.log("[YT create] bail early");
+        return;
+      }
+      const liveHost = playerHostRef.current ?? host;
+      console.log("[YT create] host connected=", liveHost?.isConnected, "sizeAttempts=", sizeAttempts);
+      if (!liveHost.isConnected) {
+        return;
+      }
+
+      const { width, height } = measureStagePlayerSize(liveHost);
+      console.log("[YT create] size=", width, height);
+      if ((width < 48 || height < 48) && sizeAttempts < 30) {
+        sizeAttempts += 1;
+        window.requestAnimationFrame(createPlayer);
+        return;
+      }
+
+      playerRef.current?.destroy();
+      playerRef.current = null;
+      liveHost.replaceChildren();
+      console.log("[YT create] creating YT.Player with id=", embed?.videoId);
+
+      const snapshot = stateRef.current;
+      if (!snapshot) {
+        return;
+      }
+      try {
+        console.log("[YT create] before constructor");
+        playerRef.current = new window.YT.Player(liveHost, {
+          height: String(height),
+          width: String(width),
+          videoId: embed.videoId,
+          playerVars: {
+            autoplay: 0,
+            controls: stageVisible ? 1 : 0,
+            disablekb: stageVisible && canControlRef.current ? 0 : 1,
+            fs: stageVisible ? 1 : 0,
+            modestbranding: 1,
+            playsinline: 1,
+            rel: 0,
+            ...(embed.list ? { listType: "playlist", list: embed.list } : {}),
           },
-          onStateChange: (event) => {
-            if (applyingRemote.current) return;
-            const control = canControlRef.current;
-            if (event.data === YT_PLAYING) {
-              setLocalPlaying(true);
-              if (control) {
-                syncCurrentTrack(true);
+          events: {
+            onReady: (event) => {
+              console.log("[YT onReady] initGen=", initGen, "current=", playerInitGenRef.current, "cancelled=", cancelled, "host children=", liveHost.childNodes.length, "host innerHTML length=", liveHost.innerHTML.length);
+              if (cancelled || initGen !== playerInitGenRef.current) return;
+              fitStagePlayerToHost(event.target, liveHost);
+              event.target.setVolume(volume);
+              const initialId =
+                trackVideoId(snapshot.video_id) ??
+                trackVideoId(readVideoData(event.target)?.video_id) ??
+                trackVideoId(embed.videoId);
+              loadedVideoId.current = initialId ?? embed.videoId;
+              lastSyncedVideoId.current =
+                trackVideoId(loadedVideoId.current) ?? loadedVideoId.current;
+              lastTransportToken.current = "";
+              setPlayerReady(true);
+              setPlayerError(false);
+              if (snapshot) {
+                applyRemoteTransport(snapshot);
               }
-            } else if (event.data === YT_PAUSED || event.data === YT_ENDED) {
-              setLocalPlaying(false);
-              if (control && event.data === YT_ENDED) {
-                window.setTimeout(() => syncCurrentTrack(true, true), 300);
+            },
+            onError: () => {
+              if (!cancelled) setPlayerError(true);
+            },
+            onStateChange: (event) => {
+              if (applyingRemote.current) return;
+              const control = canControlRef.current;
+              if (event.data === YT_PLAYING) {
+                setLocalPlaying(true);
+                if (control) {
+                  syncCurrentTrack(true);
+                }
+              } else if (event.data === YT_PAUSED || event.data === YT_ENDED) {
+                setLocalPlaying(false);
+                if (control && event.data === YT_ENDED) {
+                  window.setTimeout(() => syncCurrentTrack(true, true), 300);
+                }
+              } else if (event.data === YT_CUED && control) {
+                syncCurrentTrack(true, true);
               }
-            } else if (event.data === YT_CUED && control) {
-              syncCurrentTrack(true, true);
-            }
+            },
           },
-        },
-      });
+        });
+        console.log("[YT create] constructor returned", !!playerRef.current);
+
+        resizeObserver = new ResizeObserver(() => {
+          const player = playerRef.current;
+          const box = playerHostRef.current;
+          if (player && box) {
+            fitStagePlayerToHost(player, box);
+          }
+        });
+        resizeObserver.observe(liveHost);
+      } catch (e) {
+        console.log("[YT create] constructor error", e);
+        if (!cancelled) setPlayerError(true);
+      }
+    };
+
+    void loadYouTubeIframeAPI().then(() => {
+      if (cancelled || initGen !== playerInitGenRef.current) {
+        return;
+      }
+      createPlayer();
     });
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       playerRef.current?.destroy();
       playerRef.current = null;
       setPlayerReady(false);
@@ -264,7 +340,15 @@ export function useRoomMusicYouTube({
       lastSyncedVideoId.current = null;
       lastTransportToken.current = "";
     };
-  }, [active, frameId, playerSessionKey, syncCurrentTrack]);
+  }, [
+    active,
+    applyRemoteTransport,
+    playerHostElement,
+    playerHostRef,
+    playerSessionKey,
+    stageVisible,
+    syncCurrentTrack,
+  ]);
 
   useEffect(() => {
     playerRef.current?.setVolume(volume);
@@ -336,13 +420,31 @@ export function useRoomMusicYouTube({
     [bumpLocalGuard, canControl, state?.playlist_id, syncCurrentTrack],
   );
 
+  const unlockPlayback = useCallback(() => {
+    const player = playerRef.current;
+    if (!state || !player) return;
+    bumpLocalGuard();
+    const pos = expectedPositionSec(state);
+    if (pos > 0.5) {
+      player.seekTo(pos, true);
+    }
+    player.playVideo();
+    setLocalPlaying(true);
+    if (canControl && state.playing !== true) {
+      patch({ action: "play", position_sec: pos });
+    }
+  }, [bumpLocalGuard, canControl, patch, state]);
+
   const isPlaylist = Boolean(state?.playlist_id);
 
   return {
     localPlaying,
     isPlaylist,
+    playerReady,
+    playerError,
     sendPlayPause,
     seekBy,
     skipPlaylist,
+    unlockPlayback,
   };
 }

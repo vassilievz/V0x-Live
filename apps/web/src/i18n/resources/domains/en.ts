@@ -182,6 +182,7 @@ export const domainEn = {
     addedByDirect: "Direct video · added by {{name}}",
     directFallbackTitle: "Room video",
     directLoadError: "Could not load the link (CORS, expired, or unavailable).",
+    youtubeLoadError: "Could not load the YouTube player. Check blockers or try another link.",
     syncPlayback: "Sync playback",
     seekAria: "Video position",
     directOnStageHint: "Playing on the live stage.",
@@ -223,6 +224,8 @@ export const domainEn = {
     dialogTitle: "Cine",
     close: "Close",
     hostOnlyStatus: "Cine session is controlled by the room owner.",
+    syncedWithHost: "Synced with the room owner",
+    pausedByHost: "Paused by the room owner",
     tabCatalog: "Catalog",
     tabDirect: "Direct link",
     catalogWarning:

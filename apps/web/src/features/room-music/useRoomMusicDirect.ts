@@ -5,6 +5,7 @@ import { roomMusicStreamPath } from "@v0xlive/api-client";
 import type { QueryClient } from "@tanstack/react-query";
 import { expectedPositionSec } from "@/features/room-music/sync";
 import { mergeMusicState, transportSyncToken } from "@/features/room-music/playerSync";
+import { attachViewerVideoGuards } from "@/features/synced-playback/viewerVideoGuards";
 
 const LOCAL_GUARD_MS = 750;
 const SEEK_DRIFT_SEC = 1.75;
@@ -367,6 +368,19 @@ export function useRoomMusicDirect({
       video.removeEventListener("seeked", onSeeked);
     };
   }, [active, bumpLocalGuard, canControl, localPlaying, patch, setMusicCache, state, videoRef]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !active || canControl) {
+      return;
+    }
+    return attachViewerVideoGuards(video, {
+      canControl,
+      getSnapshot: () => state,
+      applyingRemote,
+      suppressEvents: suppressPlaybackEvents,
+    });
+  }, [active, canControl, state, videoRef]);
 
   const sendPlayPause = useCallback(() => {
     const video = videoRef.current;

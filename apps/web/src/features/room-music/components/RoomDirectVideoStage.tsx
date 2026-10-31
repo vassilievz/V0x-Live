@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useRoomDirectVideoRequired } from "@/features/room-music/RoomDirectVideoContext";
+import { blockViewerMediaKeys } from "@/features/synced-playback/viewerVideoGuards";
 import {
   broadcastStageDirectShell,
   broadcastStageDirectVideo,
@@ -120,6 +121,14 @@ export function RoomDirectVideoStage() {
   }, []);
 
   useEffect(() => {
+    const shell = stageShellRef.current;
+    if (!shell || canControl) {
+      return;
+    }
+    return blockViewerMediaKeys(shell, true);
+  }, [canControl, stageShellRef]);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) {
       return;
@@ -168,6 +177,7 @@ export function RoomDirectVideoStage() {
         });
   const progressPct = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
   const showChrome = chromeVisible || !localPlaying || needsUnlock || loadError;
+  const syncStatus = localPlaying ? t("cine.syncedWithHost") : t("cine.pausedByHost");
 
   return (
     <div
@@ -179,11 +189,18 @@ export function RoomDirectVideoStage() {
     >
       <video
         ref={videoRef}
-        className={broadcastStageDirectVideo}
+        className={cn(broadcastStageDirectVideo, !canControl && "broadcast-stage-direct-video--locked")}
         playsInline
         controls={false}
+        disablePictureInPicture
+        controlsList="nodownload noplaybackrate"
         preload="auto"
-        onClick={revealChrome}
+        onClick={(event) => {
+          revealChrome();
+          if (!canControl) {
+            event.preventDefault();
+          }
+        }}
       />
 
       <div
@@ -241,63 +258,79 @@ export function RoomDirectVideoStage() {
         ) : null}
 
         <div className="broadcast-stage-direct-dock">
-          <div className="broadcast-stage-direct-progress">
-            <span className="broadcast-stage-direct-time">{formatTime(currentTime)}</span>
-            <input
-              type="range"
-              className="broadcast-stage-direct-scrub"
-              min={0}
-              max={100}
-              step={0.1}
-              value={progressPct}
-              disabled={!canControl || duration <= 0}
-              aria-label={t("music.seekAria")}
-              onChange={(e) => onProgressInput(Number(e.target.value))}
-            />
-            <span className="broadcast-stage-direct-time">{formatTime(duration)}</span>
-          </div>
+          {canControl ? (
+            <>
+              <div className="broadcast-stage-direct-progress">
+                <span className="broadcast-stage-direct-time">{formatTime(currentTime)}</span>
+                <input
+                  type="range"
+                  className="broadcast-stage-direct-scrub"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={progressPct}
+                  disabled={duration <= 0}
+                  aria-label={t("music.seekAria")}
+                  onChange={(e) => onProgressInput(Number(e.target.value))}
+                />
+                <span className="broadcast-stage-direct-time">{formatTime(duration)}</span>
+              </div>
 
-          <div className="broadcast-stage-direct-controls">
-            <button
-              type="button"
-              className={roomMusicIconBtn}
-              aria-label={t("music.skipPrevSec")}
-              disabled={!canControl}
-              onClick={() => seekBy(-10)}
-            >
-              <SkipBack className="size-4" />
-            </button>
-            <button
-              type="button"
-              className={roomMusicPlayBtn}
-              aria-label={localPlaying ? t("music.pause") : t("music.play")}
-              disabled={!canControl}
-              onClick={sendPlayPause}
-            >
-              {localPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
-            </button>
-            <button
-              type="button"
-              className={roomMusicIconBtn}
-              aria-label={t("music.skipNextSec")}
-              disabled={!canControl}
-              onClick={() => seekBy(10)}
-            >
-              <SkipForward className="size-4" />
-            </button>
-            <label className="broadcast-stage-direct-volume">
-              <Volume2 className="size-4 shrink-0" aria-hidden="true" />
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                aria-label={t("music.volume")}
-              />
-            </label>
-            <p className="broadcast-stage-direct-foot">{lockedLabel}</p>
-          </div>
+              <div className="broadcast-stage-direct-controls">
+                <button
+                  type="button"
+                  className={roomMusicIconBtn}
+                  aria-label={t("music.skipPrevSec")}
+                  onClick={() => seekBy(-10)}
+                >
+                  <SkipBack className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  className={roomMusicPlayBtn}
+                  aria-label={localPlaying ? t("music.pause") : t("music.play")}
+                  onClick={sendPlayPause}
+                >
+                  {localPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
+                </button>
+                <button
+                  type="button"
+                  className={roomMusicIconBtn}
+                  aria-label={t("music.skipNextSec")}
+                  onClick={() => seekBy(10)}
+                >
+                  <SkipForward className="size-4" />
+                </button>
+                <label className="broadcast-stage-direct-volume">
+                  <Volume2 className="size-4 shrink-0" aria-hidden="true" />
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={volume}
+                    onChange={(e) => setVolume(Number(e.target.value))}
+                    aria-label={t("music.volume")}
+                  />
+                </label>
+                <p className="broadcast-stage-direct-foot">{lockedLabel}</p>
+              </div>
+            </>
+          ) : (
+            <div className="broadcast-stage-direct-controls broadcast-stage-viewer-dock">
+              <p className="broadcast-stage-direct-foot">{syncStatus}</p>
+              <label className="broadcast-stage-direct-volume">
+                <Volume2 className="size-4 shrink-0" aria-hidden="true" />
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  aria-label={t("music.volume")}
+                />
+              </label>
+            </div>
+          )}
         </div>
       </div>
     </div>

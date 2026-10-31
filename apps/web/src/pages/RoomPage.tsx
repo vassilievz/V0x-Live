@@ -61,18 +61,19 @@ export function RoomPage() {
 
   const session = useSessionUser({ bootstrapGuest: false });
 
-  const roomMeta = useQuery({
-    queryKey: ["room-preview-public", roomId],
-    queryFn: () => roomsApi.preview(roomId!),
-    enabled: Boolean(roomId),
-    staleTime: 60_000,
-  });
-
   const entry = useQuery({
     queryKey: ["room-entry", roomId],
     queryFn: () => roomsApi.entry(roomId!),
     enabled: Boolean(roomId) && session.isSuccess,
     staleTime: 0,
+  });
+
+  const roomMeta = useQuery({
+    queryKey: ["room-preview-public", roomId],
+    queryFn: () => roomsApi.preview(roomId!),
+    enabled: Boolean(roomId) && entry.data?.visibility === "public",
+    staleTime: 60_000,
+    retry: false,
   });
 
   const hasSession = session.isSuccess;
@@ -223,7 +224,9 @@ export function RoomPage() {
 
   const roomName = entryInfo?.name ?? roomMeta.data?.name ?? t("room.defaultName");
   const authReady = session.isFetched;
-  const metaReady = Boolean(roomMeta.data) || roomMeta.isError;
+  const isPublicRoom = entryInfo?.visibility === "public";
+  const metaReady =
+    !isPublicRoom || Boolean(roomMeta.data) || roomMeta.isError;
   const entryReady = !hasSession || entry.isFetched;
   const waitingSession = !authReady || !metaReady || !entryReady;
   const needsInviteGate = entryInfo ? needsRoomInviteGate(entryInfo) : false;
