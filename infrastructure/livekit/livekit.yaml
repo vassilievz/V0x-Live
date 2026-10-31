@@ -7,6 +7,6 @@ rtc:
 redis:
   address: redis:6379
 keys:
-  devkey: secret_must_be_at_least_32_characters_long_dev
+  v0xlive_prod: 7512fc8546064d4ea3bf8e8d41dc167e0c9043c08b28408ba52bc4d2854d2af3
 logging:
   level: info

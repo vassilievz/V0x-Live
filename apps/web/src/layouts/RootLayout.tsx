@@ -7,6 +7,8 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { pageTransition } from "@/motion/presets";
 import { useHomeContentLock } from "@/hooks/useHomeContentLock";
 import { useEnsureGuestSession } from "@/hooks/useEnsureGuestSession";
+import { cn } from "@/lib/cn";
+import { homeContentLock, roomAppRoot, roomStageOutlet } from "@/ui";
 
 const ROUTE_META_KEYS: Record<string, "home" | "dashboard" | "rooms"> = {
   "/": "home",
@@ -51,7 +53,7 @@ export function RootLayout() {
   }, [location.pathname, t, i18n.language]);
 
   return (
-    <div className={`flex min-h-dvh flex-col${isRoomStage ? " room-app-root" : ""}`}>
+    <div className={cn("flex min-h-dvh flex-col", isRoomStage && roomAppRoot)}>
       <a
         href="#conteudo-principal"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-foreground focus:px-4 focus:py-2 focus:text-background"
@@ -68,14 +70,14 @@ export function RootLayout() {
           isRoomStage
             ? "flex min-h-0 flex-1 flex-col"
             : isHome
-              ? "home-content-lock flex-1"
+              ? cn(homeContentLock, "flex-1")
               : "flex-1"
         }
       >
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            className={isRoomStage ? "room-stage-outlet" : undefined}
+            className={isRoomStage ? roomStageOutlet : undefined}
             {...pageTransition}
             initial={reduced ? false : pageTransition.initial}
             transition={reduced ? { duration: 0 } : pageTransition.transition}
@@ -85,7 +87,7 @@ export function RootLayout() {
         </AnimatePresence>
       </main>
       {!isRoomStage ? (
-        <SiteFooter className={isHome ? "home-content-lock" : undefined} />
+        <SiteFooter className={isHome ? homeContentLock : undefined} />
       ) : null}
     </div>
   );

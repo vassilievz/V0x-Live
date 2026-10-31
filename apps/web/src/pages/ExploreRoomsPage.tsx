@@ -5,9 +5,32 @@ import { useTranslation } from "react-i18next";
 import { ArrowUpRight, Search, Users, WifiOff } from "lucide-react";
 import { Button, Input } from "@v0xlive/ui";
 import { roomsApi } from "@/lib/api";
+import { cn } from "@/lib/cn";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
 import { SitePageHead } from "@/components/layout/SitePageHead";
 import { ExploreRoomsHero } from "@/features/rooms/components/ExploreRoomsHero";
+import {
+  actionLink,
+  actionLinkPill,
+  emptyState,
+  homeBentoPanel,
+  homeCellCode,
+  roomCardExplore,
+  roomCardExploreAudience,
+  roomCardExploreCta,
+  roomCardExploreDesc,
+  roomCardExploreHead,
+  roomCardExploreSkeleton,
+  roomCardExploreStatus,
+  roomCardExploreTitle,
+  roomsGrid,
+  roomsGridExplore,
+  roomsSearch,
+  roomsToolbar,
+  signalDot,
+  sitePanelFlush,
+  textLink,
+} from "@/ui";
 
 function searchLocale(language: string): string {
   if (language.startsWith("pt")) return "pt-BR";
@@ -41,17 +64,17 @@ export function ExploreRoomsPage() {
           title={t("explore.title")}
           description={t("explore.description")}
           actions={
-            <Link to="/dashboard" className="action-link action-link--pill">
+            <Link to="/dashboard" className={cn(actionLink, actionLinkPill)}>
               {t("explore.createRoom")} <ArrowUpRight aria-hidden="true" />
             </Link>
           }
         />
       </ExploreRoomsHero>
 
-      <section className="home-bento-panel site-panel site-panel--flush">
-        <div className="rooms-toolbar">
+      <section className={cn(homeBentoPanel, sitePanelFlush)}>
+        <div className={roomsToolbar}>
           <p>{countLabel}</p>
-          <div className="rooms-search">
+          <div className={roomsSearch}>
             <label htmlFor="room-search" className="sr-only">
               {t("explore.searchLabel")}
             </label>
@@ -67,17 +90,17 @@ export function ExploreRoomsPage() {
         </div>
 
         {rooms.isLoading ? (
-          <div className="rooms-grid rooms-grid--explore" role="status" aria-label={t("explore.loadingAria")}>
-            <div className="room-card-explore room-card-explore--skeleton" />
-            <div className="room-card-explore room-card-explore--skeleton" />
-            <div className="room-card-explore room-card-explore--skeleton" />
+          <div className={cn(roomsGrid, roomsGridExplore)} role="status" aria-label={t("explore.loadingAria")}>
+            <div className={roomCardExploreSkeleton} />
+            <div className={roomCardExploreSkeleton} />
+            <div className={roomCardExploreSkeleton} />
           </div>
         ) : null}
 
         {rooms.isError ? (
-          <div className="empty-state">
+          <div className={emptyState}>
             <WifiOff aria-hidden="true" />
-            <span className="home-cell-code">RM-ERR</span>
+            <span className={homeCellCode}>RM-ERR</span>
             <h2>{t("explore.errorTitle")}</h2>
             <p>{t("explore.errorBody")}</p>
             <Button variant="secondary" className="mt-6" onClick={() => void rooms.refetch()} disabled={rooms.isFetching}>
@@ -87,8 +110,8 @@ export function ExploreRoomsPage() {
         ) : null}
 
         {rooms.isSuccess && items.length === 0 ? (
-          <div className="empty-state">
-            <span className="home-cell-code">RM-EMPTY</span>
+          <div className={emptyState}>
+            <span className={homeCellCode}>RM-EMPTY</span>
             <h2>{search ? t("explore.emptySearchTitle") : t("explore.emptyTitle")}</h2>
             <p>{search ? t("explore.emptySearchBody") : t("explore.emptyBody")}</p>
             {search ? (
@@ -96,7 +119,7 @@ export function ExploreRoomsPage() {
                 {t("explore.clearSearch")}
               </Button>
             ) : (
-              <Link to="/dashboard" className="action-link action-link--pill">
+              <Link to="/dashboard" className={cn(actionLink, actionLinkPill)}>
                 {t("explore.openMyRoom")} <ArrowUpRight aria-hidden="true" />
               </Link>
             )}
@@ -104,30 +127,30 @@ export function ExploreRoomsPage() {
         ) : null}
 
         {rooms.isSuccess && items.length > 0 ? (
-          <ul className="rooms-grid rooms-grid--explore">
+          <ul className={cn(roomsGrid, roomsGridExplore)}>
             {items.map((room) => (
               <li key={room.id}>
                 <Link
                   to={`/room/${room.id}`}
-                  className="room-card-explore"
+                  className={roomCardExplore}
                   data-live={room.is_live ? "true" : "false"}
                   aria-label={t("explore.joinRoomAria", { name: room.name })}
                 >
-                  <div className="room-card-explore-head">
-                    <span className="room-card-explore-status">
-                      {room.is_live ? <span className="signal-dot" aria-hidden="true" /> : null}
+                  <div className={roomCardExploreHead}>
+                    <span className={roomCardExploreStatus}>
+                      {room.is_live ? <span className={signalDot} aria-hidden="true" /> : null}
                       {room.is_live ? t("explore.live") : t("explore.roomOpen")}
                     </span>
-                    <span className="room-card-explore-audience">
+                    <span className={roomCardExploreAudience}>
                       <Users aria-hidden="true" />
                       {t("explore.people", { count: room.participant_count })}
                     </span>
                   </div>
-                  <h2 className="room-card-explore-title">{room.name}</h2>
+                  <h2 className={roomCardExploreTitle}>{room.name}</h2>
                   {room.description ? (
-                    <p className="room-card-explore-desc">{room.description}</p>
+                    <p className={roomCardExploreDesc}>{room.description}</p>
                   ) : null}
-                  <span className="text-link room-card-explore-cta">
+                  <span className={cn(textLink, roomCardExploreCta)}>
                     {t("explore.joinRoom")} <ArrowUpRight aria-hidden="true" />
                   </span>
                 </Link>

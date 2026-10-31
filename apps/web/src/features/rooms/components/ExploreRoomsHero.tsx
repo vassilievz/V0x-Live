@@ -1,5 +1,15 @@
 import type { ReactNode } from "react";
 import { useReducedMotion } from "framer-motion";
+import {
+  exploreRoomsHero,
+  exploreRoomsHeroContent,
+  exploreRoomsHeroFrame,
+  exploreRoomsHeroFrameLabel,
+  exploreRoomsHeroGif,
+  exploreRoomsHeroGrain,
+  exploreRoomsHeroStage,
+  exploreRoomsHeroVeil,
+} from "@/ui";
 
 const EXPLORE_SIGNAL_GIF = "/media/twitter_2055481496459513899.gif";
 const EXPLORE_SIGNAL_POSTER = "/signal-art.webp";
@@ -12,23 +22,23 @@ export function ExploreRoomsHero({ children }: ExploreRoomsHeroProps) {
   const reduced = useReducedMotion();
 
   return (
-    <section className="explore-rooms-hero home-bento-panel site-panel site-panel--flush">
-      <div className="explore-rooms-hero__stage" aria-hidden="true">
+    <section className={exploreRoomsHero}>
+      <div className={exploreRoomsHeroStage} aria-hidden="true">
         <img
           src={reduced ? EXPLORE_SIGNAL_POSTER : EXPLORE_SIGNAL_GIF}
           alt=""
-          className="explore-rooms-hero__gif"
+          className={exploreRoomsHeroGif}
           loading="eager"
           decoding="async"
           draggable={false}
         />
-        <div className="explore-rooms-hero__grain" />
-        <div className="explore-rooms-hero__veil" />
-        <div className="explore-rooms-hero__frame">
-          <span className="explore-rooms-hero__frame-label">SIG · LIVE</span>
+        <div className={exploreRoomsHeroGrain} />
+        <div className={exploreRoomsHeroVeil} />
+        <div className={exploreRoomsHeroFrame}>
+          <span className={exploreRoomsHeroFrameLabel}>SIG · LIVE</span>
         </div>
       </div>
-      <div className="explore-rooms-hero__content">{children}</div>
+      <div className={exploreRoomsHeroContent}>{children}</div>
     </section>
   );
 }

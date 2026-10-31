@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import heroArt from "@/assets/hero-knight.jpg";
 import { mountHeroArtGrain } from "@/components/landing/heroArtGrain";
+import { homeHeroArt, homeHeroArtGrain, homeHeroArtImage } from "@/ui";
 
 export function HeroKnightArt() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,18 +23,18 @@ export function HeroKnightArt() {
   }, []);
 
   return (
-    <div ref={containerRef} className="home-hero-art" aria-hidden="true">
+    <div ref={containerRef} className={homeHeroArt} aria-hidden="true">
       <img
         src={heroArt}
         alt=""
-        className="home-hero-art-image"
+        className={homeHeroArtImage}
         width={1200}
         height={1600}
         decoding="async"
         fetchPriority="high"
         draggable={false}
       />
-      <canvas ref={canvasRef} className="home-hero-art-grain" aria-hidden="true" />
+      <canvas ref={canvasRef} className={homeHeroArtGrain} aria-hidden="true" />
     </div>
   );
 }

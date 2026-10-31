@@ -5,6 +5,16 @@ import { useTranslation } from "react-i18next";
 import { ArrowUpRight } from "lucide-react";
 import { Button, Input } from "@v0xlive/ui";
 import { healthApi } from "@/lib/api";
+import {
+  homeCreateCard,
+  homeCreateFoot,
+  homeCreateLabel,
+  homeCreateSubmit,
+  homeCreateTitle,
+  statusOffline,
+  statusOnline,
+} from "@/ui";
+import { cn } from "@/lib/cn";
 
 export function CreateRoomHeroForm() {
   const navigate = useNavigate();
@@ -29,9 +39,9 @@ export function CreateRoomHeroForm() {
       : t("createRoom.statusChecking");
 
   return (
-    <form onSubmit={handleSubmit} className="home-create-card">
-      <p className="home-create-label">{t("createRoom.label")}</p>
-      <h2 className="home-create-title">{t("createRoom.title")}</h2>
+    <form onSubmit={handleSubmit} className={homeCreateCard}>
+      <p className={homeCreateLabel}>{t("createRoom.label")}</p>
+      <h2 className={homeCreateTitle}>{t("createRoom.title")}</h2>
       <label htmlFor="hero-room-name">{t("createRoom.fieldLabel")}</label>
       <Input
         id="hero-room-name"
@@ -42,13 +52,13 @@ export function CreateRoomHeroForm() {
         maxLength={120}
         required
       />
-      <Button type="submit" disabled={!name.trim()} className="home-create-submit">
+      <Button type="submit" disabled={!name.trim()} className={homeCreateSubmit}>
         {t("createRoom.submit")} <ArrowUpRight size={17} aria-hidden="true" />
       </Button>
-      <p className="home-create-foot">
+      <p className={homeCreateFoot}>
         <span>{t("createRoom.footGuest")}</span>
         <span
-          className={health.isSuccess ? "status-online" : "status-offline"}
+          className={cn(health.isSuccess ? statusOnline : statusOffline)}
           role="status"
         >
           {statusLabel}

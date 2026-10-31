@@ -1,50 +1,81 @@
-# Deploy na Railway
+# Deploy na Railway (V0x Live)
 
-Monorepo com **dois serviços** (recomendado) + MongoDB Atlas + LiveKit externo.
+Produção: **`live.v0x.lol`** (web) · **`apilive.v0x.lol`** (API) · **`lklive.v0x.lol`** (LiveKit).  
+Valores prontos para colar: **`.env.railway`** (gitignored). Detalhe DNS: [`domains.md`](domains.md).
+
+## Ordem recomendada
+
+1. Criar **project** Railway + ligar o repo GitHub (deploy automático).
+2. Adicionar plugin **Redis**.
+3. Criar **4 serviços** (ou 3 + Redis plugin):
+
+| Serviço | `railway.toml` / Dockerfile | Domínio custom |
+|--------|-----------------------------|----------------|
+| **API** | `apps/api/railway.toml` → `apps/api/Dockerfile` | `apilive.v0x.lol` |
+| **Web** | `apps/web/railway.toml` → `infrastructure/docker/Dockerfile.web` | `live.v0x.lol` |
+| **LiveKit** | `infrastructure/livekit/railway.toml` → `infrastructure/docker/Dockerfile.livekit` | `lklive.v0x.lol` |
+| **Redis** | Plugin (sem Dockerfile) | — |
+
+4. Em cada serviço: **Settings → Custom Domain** → CNAME no DNS conforme a Railway indicar.
+5. Colar variáveis de **`.env.railway`** (bloco por serviço).
+6. **Web:** definir `VITE_*` como **variables** do serviço (Railway passa como build args ao Docker se os nomes coincidirem com `ARG` do Dockerfile).
+7. Redeploy do **web** após alterar `VITE_*` (são baked no build).
 
 ## 1. API (Go)
 
-| Campo | Valor |
-|--------|--------|
-| **Root Directory** | `/` (raiz do repo) |
-| **Dockerfile** | `apps/api/Dockerfile` |
-| **Healthcheck** | `GET /health` |
+Healthcheck: `GET /health` · `GET /ready`
 
-Variáveis (ver `apps/api/.env.example`):
+Railway injeta `PORT`; a API escuta `:${PORT}` automaticamente.
 
-- `MONGO_URL` — obrigatório (Atlas ou Railway Mongo plugin)
-- `APP_ENV=production`
-- `TRUST_PROXY=true`
-- `CORS_ALLOWED_ORIGINS` — URL pública do frontend
-- `APP_URL` — URL pública do frontend (links/cookies)
-- `LIVEKIT_*` — servidor LiveKit acessível pela internet
+Variáveis principais (bloco **SERVIÇO API** em `.env.railway`):
 
-Porta: Railway injeta `PORT`; se necessário, mapeie `HTTP_ADDR=:${PORT}` (ou use `:8080` se a imagem expõe 8080 e você fixar `PORT=8080`).
+- `MONGO_URL`
+- `APP_ENV=production` · `TRUST_PROXY=true`
+- `APP_URL=https://live.v0x.lol`
+- `CORS_ALLOWED_ORIGINS=https://live.v0x.lol`
+- `LIVEKIT_URL=wss://lklive.v0x.lol`
+- `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` (igual a `LIVEKIT_KEYS` no LiveKit)
+- `GOOGLE_REDIRECT_URI=https://apilive.v0x.lol/api/v1/auth/google/callback`
 
 ## 2. Web (Vite + nginx)
 
-| Campo | Valor |
-|--------|--------|
-| **Dockerfile** | `infrastructure/docker/Dockerfile.web` |
+Build args / env no build:
 
-**Build Args** (obrigatórios em produção):
+- `VITE_API_URL=https://apilive.v0x.lol`
+- `VITE_WS_URL=wss://apilive.v0x.lol`
+- `VITE_LIVEKIT_URL=wss://lklive.v0x.lol`
 
-- `VITE_API_URL` — URL HTTPS da API
-- `VITE_LIVEKIT_URL` — `wss://...` do LiveKit
+Domínio: **`live.v0x.lol`**
 
-Opcional: `VITE_WS_URL` se WebSocket não for derivado da API.
+## 3. LiveKit + Redis
 
-Gere domínio público no serviço web. Atualize `CORS_ALLOWED_ORIGINS` e `APP_URL` na API com essa URL.
+A API **não** corre LiveKit; só emite tokens JWT.
 
-## 3. LiveKit
+No serviço **LiveKit**:
 
-Use [LiveKit Cloud](https://livekit.io/) ou self-host. Redis é exigido pelo LiveKit em produção (`docker-compose.yml` local é só dev).
+- `LIVEKIT_KEYS` (formato `key: secret`)
+- `REDIS_URL` ou referências `REDISHOST`, `REDISPORT`, `REDISUSER`, `REDIS_PASSWORD` do plugin Redis
+
+Domínio: **`lklive.v0x.lol`** → `wss://lklive.v0x.lol` na API e no web.
+
+WebRTC na Railway pode exigir ajustes extra (UDP/portas); validar palco no browser após DNS propagar.
 
 ## 4. Checklist pós-deploy
 
-1. API responde `/health` e `/ready`
-2. Frontend carrega; login guest funciona (cookies `Secure` em HTTPS)
-3. Entrar numa sala e obter token LiveKit
-4. CORS sem erro no browser
+1. `https://apilive.v0x.lol/health` OK  
+2. `https://live.v0x.lol` carrega  
+3. Guest login / cookies (sem erro CORS)  
+4. Sala → token LiveKit → palco conecta (`wss://lklive.v0x.lol`)  
 
-Docs: [Railway Docs](https://docs.railway.com/)
+## Ficheiros locais (dev)
+
+| Ficheiro | Uso |
+|----------|-----|
+| `apps/api/.env` | API local |
+| `apps/web/.env.development` | Vite local |
+| `infrastructure/livekit/.env` | Referência LiveKit/Redis |
+| `.env.railway` | Copiar para Railway |
+
+Local: `docker compose up` + `pnpm dev` — LiveKit em `ws://localhost:7880`.
+
+[Railway Docs](https://docs.railway.com/)

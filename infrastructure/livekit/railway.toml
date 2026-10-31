@@ -1,0 +1,6 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "infrastructure/docker/Dockerfile.livekit"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"

@@ -1,3 +1,12 @@
+import { cn } from "@/lib/cn";
+import {
+  userAvatarBase,
+  userAvatarFallback,
+  userAvatarLg,
+  userAvatarMd,
+  userAvatarSm,
+} from "@/ui";
+
 type UserAvatarProps = {
   name: string;
   src?: string | null;
@@ -12,23 +21,25 @@ function initialsFromName(name: string): string {
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
 }
 
+const sizeClass = {
+  sm: userAvatarSm,
+  md: userAvatarMd,
+  lg: userAvatarLg,
+} as const;
+
 export function UserAvatar({ name, src, size = "md", className }: UserAvatarProps) {
   const trimmed = src?.trim();
   const showImage = Boolean(trimmed);
 
   return (
     <span
-      className={
-        className
-          ? `user-avatar user-avatar--${size} ${className}`
-          : `user-avatar user-avatar--${size}`
-      }
+      className={cn(userAvatarBase, sizeClass[size], className)}
       aria-hidden={showImage ? undefined : true}
     >
       {showImage ? (
         <img src={trimmed} alt="" referrerPolicy="no-referrer" loading="lazy" />
       ) : (
-        <span className="user-avatar-fallback">{initialsFromName(name)}</span>
+        <span className={userAvatarFallback}>{initialsFromName(name)}</span>
       )}
     </span>
   );

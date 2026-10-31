@@ -1,0 +1,54 @@
+.crt-art__layer--rgb::before,
+.crt-art__layer--rgb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  mix-blend-mode: screen;
+}
+
+.crt-art__layer--rgb::before {
+  background: linear-gradient(90deg, rgb(255 0 0 / 35%) 0%, transparent 38%);
+  transform: translateX(-1px);
+}
+
+.crt-art__layer--rgb::after {
+  background: linear-gradient(270deg, rgb(0 180 255 / 28%) 0%, transparent 42%);
+  transform: translateX(1px);
+}
+
+.crt-art__scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.35;
+  background: repeating-linear-gradient(
+    0deg,
+    rgb(0 0 0 / 0%) 0,
+    rgb(0 0 0 / 0%) 2px,
+    rgb(0 0 0 / 22%) 2px,
+    rgb(0 0 0 / 22%) 3px
+  );
+}
+
+.crt-art__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 70% 65% at 50% 45%,
+    transparent 35%,
+    rgb(0 0 0 / 55%) 100%
+  );
+}
+
+.crt-art__particles {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.55;
+}

@@ -10,6 +10,37 @@ import { StepHalftoneCell } from "@/components/background/StepHalftoneCell";
 import { BentoShell } from "@/components/layout/BentoShell";
 import { Reveal } from "@/motion/Reveal";
 import { easeOut } from "@/motion/presets";
+import { cn } from "@/lib/cn";
+import {
+  actionLink,
+  actionLinkOutline,
+  actionLinkPill,
+  homeAccentWord,
+  homeBentoPanel,
+  homeCellCode,
+  homeHero,
+  homeHeroInner,
+  homeHeroCopy,
+  homeHeroFormWrap,
+  homeHeroGrid,
+  homeHeroLinks,
+  homeHeroTitle,
+  homeHighlightGrid,
+  homeKicker,
+  homeLead,
+  homeSectionHead,
+  homeSectionTitle,
+  homeStepList,
+  homeAboutLayout,
+  homeAboutCopy,
+  homeAboutText,
+  homeFaqBody,
+  homeFaqItem,
+  homeFaqList,
+  homeStepNum,
+  textLink,
+  textLinkMuted,
+} from "@/ui";
 
 const STEP_DEFS = [
   { code: "VX-01", key: "pickName" },
@@ -31,40 +62,40 @@ export function LandingPage() {
 
   return (
     <BentoShell showMetaBar>
-        <section className="home-hero home-bento-panel" aria-labelledby="home-title">
+        <section className={cn(homeHero, homeBentoPanel)} aria-labelledby="home-title">
           <HeroKnightArt />
-          <div className="home-hero-inner">
-            <div className="home-hero-grid">
+          <div className={homeHeroInner}>
+            <div className={homeHeroGrid}>
               <motion.div
-                className="home-hero-copy"
+                className={homeHeroCopy}
                 initial={reduced ? false : { opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: easeOut }}
               >
-                <p className="home-kicker">
-                  <span className="home-cell-code">HL-00</span>
+                <p className={homeKicker}>
+                  <span className={cn(homeCellCode, "mb-0")}>HL-00</span>
                   {t("landing.hero.kicker")}
                 </p>
-                <h1 id="home-title">
+                <h1 id="home-title" className={homeHeroTitle}>
                   <Trans
                     i18nKey="landing.hero.title"
                     components={{
-                      accent: <span className="home-accent-word" />,
+                      accent: <span className={homeAccentWord} />,
                     }}
                   />
                 </h1>
-                <p className="home-lead">{t("landing.hero.lead")}</p>
-                <div className="home-hero-links">
-                  <Link to="/rooms" className="action-link action-link--pill">
+                <p className={homeLead}>{t("landing.hero.lead")}</p>
+                <div className={homeHeroLinks}>
+                  <Link to="/rooms" className={cn(actionLink, actionLinkPill)}>
                     {t("landing.hero.publicRooms")} <ArrowUpRight aria-hidden="true" />
                   </Link>
-                  <Link to="/dashboard" className="text-link text-link--muted">
+                  <Link to="/dashboard" className={cn(textLink, textLinkMuted)}>
                     {t("nav.mySpace")} <ArrowUpRight aria-hidden="true" />
                   </Link>
                 </div>
               </motion.div>
               <motion.div
-                className="home-hero-form-wrap"
+                className={homeHeroFormWrap}
                 initial={reduced ? false : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.55, ease: easeOut, delay: 0.06 }}
@@ -75,20 +106,20 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section className="home-steps home-bento-panel" aria-labelledby="steps-title">
+        <section className={cn("bg-background", homeBentoPanel)} aria-labelledby="steps-title">
           <Reveal>
-            <div className="home-section-head">
-              <h2 id="steps-title" className="home-section-title">
+            <div className={homeSectionHead}>
+              <h2 id="steps-title" className={homeSectionTitle}>
                 {t("landing.steps.title")}
               </h2>
-              <span className="home-cell-code">{t("landing.steps.code")}</span>
+              <span className={homeCellCode}>{t("landing.steps.code")}</span>
             </div>
           </Reveal>
-          <ul className="home-step-list">
+          <ul className={homeStepList}>
             {STEP_DEFS.map((step, index) => (
               <StepHalftoneCell key={step.code} code={step.code}>
-                <span className="home-cell-code">{step.code}</span>
-                <span className="home-step-num" aria-hidden="true">
+                <span className={homeCellCode}>{step.code}</span>
+                <span className={homeStepNum} aria-hidden="true">
                   {index + 1}
                 </span>
                 <h3>{t(`landing.steps.${step.key}.title`)}</h3>
@@ -98,19 +129,19 @@ export function LandingPage() {
           </ul>
         </section>
 
-        <section className="home-highlights home-bento-panel" aria-labelledby="highlights-title">
+        <section className={cn("bg-background", homeBentoPanel)} aria-labelledby="highlights-title">
           <Reveal>
-            <div className="home-section-head">
-              <h2 id="highlights-title" className="home-section-title">
+            <div className={homeSectionHead}>
+              <h2 id="highlights-title" className={homeSectionTitle}>
                 {t("landing.highlights.title")}
               </h2>
-              <span className="home-cell-code">{t("landing.highlights.code")}</span>
+              <span className={homeCellCode}>{t("landing.highlights.code")}</span>
             </div>
           </Reveal>
-          <ul className="home-highlight-grid">
+          <ul className={homeHighlightGrid}>
             {HIGHLIGHT_DEFS.map((item) => (
               <HighlightHalftoneCell key={item.code} code={item.code}>
-                <span className="home-cell-code">{item.code}</span>
+                <span className={homeCellCode}>{item.code}</span>
                 <h3>{t(`landing.highlights.${item.key}.title`)}</h3>
                 <p>{t(`landing.highlights.${item.key}.text`)}</p>
               </HighlightHalftoneCell>
@@ -118,16 +149,16 @@ export function LandingPage() {
           </ul>
         </section>
 
-        <section className="home-about home-bento-panel" aria-labelledby="about-title">
+        <section className={cn("bg-background", homeBentoPanel)} aria-labelledby="about-title">
           <Reveal>
-            <div className="home-about-layout">
-              <div className="home-about-copy">
-                <span className="home-cell-code">AB-01</span>
-                <h2 id="about-title" className="home-section-title">
+            <div className={homeAboutLayout}>
+              <div className={homeAboutCopy}>
+                <span className={homeCellCode}>AB-01</span>
+                <h2 id="about-title" className={homeSectionTitle}>
                   {t("landing.about.title")}
                 </h2>
-                <p className="home-about-text">{t("landing.about.text")}</p>
-                <Link to="/dashboard" className="action-link action-link--outline action-link--pill">
+                <p className={homeAboutText}>{t("landing.about.text")}</p>
+                <Link to="/dashboard" className={cn(actionLink, actionLinkOutline, actionLinkPill, "mt-6")}>
                   {t("landing.about.cta")} <ArrowUpRight aria-hidden="true" />
                 </Link>
               </div>
@@ -136,21 +167,21 @@ export function LandingPage() {
           </Reveal>
         </section>
 
-        <section className="home-faq home-bento-panel" aria-labelledby="faq-title">
+        <section className={cn("bg-background", homeBentoPanel)} aria-labelledby="faq-title">
           <Reveal>
-            <div className="home-section-head">
-              <h2 id="faq-title" className="home-section-title">
+            <div className={homeSectionHead}>
+              <h2 id="faq-title" className={homeSectionTitle}>
                 {t("landing.faq.title")}
               </h2>
-              <span className="home-cell-code">{t("landing.faq.code")}</span>
+              <span className={homeCellCode}>{t("landing.faq.code")}</span>
             </div>
           </Reveal>
-          <div className="home-faq-list">
+          <div className={homeFaqList}>
             {FAQ_KEYS.map((key) => (
               <Reveal key={key}>
-                <details className="home-faq-item">
+                <details className={homeFaqItem}>
                   <summary>{t(`landing.faq.${key}.q`)}</summary>
-                  <div className="home-faq-body">
+                  <div className={homeFaqBody}>
                     <p>{t(`landing.faq.${key}.a`)}</p>
                   </div>
                 </details>

@@ -18,6 +18,10 @@ export const pt = {
         es: "Español",
       },
     },
+    community: {
+      discord: "Discord",
+      discordAria: "Entrar na comunidade V0x Live no Discord (abre em nova aba)",
+    },
   },
   nav: {
     exploreRooms: "Explorar salas",
@@ -43,6 +47,7 @@ export const pt = {
     findGroup: "ENCONTRE SEU GRUPO",
     yourSpace: "SEU ESPAÇO",
     createRoom: "Criar uma sala",
+    community: "COMUNIDADE",
     copyright: "© {{year}} V0x Live.",
     tagline: "Feito para estar junto.",
   },

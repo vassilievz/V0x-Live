@@ -9,7 +9,24 @@ import {
 } from "@v0xlive/api-client";
 import { Button, Input } from "@v0xlive/ui";
 import { ApiError, authApi, roomsApi } from "@/lib/api";
+import { cn } from "@/lib/cn";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
+import {
+  authForm,
+  fieldError,
+  fieldGroup,
+  homeBentoPanel,
+  homeCellCode,
+  homeSectionTitle,
+  siteBackLink,
+  sitePanel,
+  sitePanelCompact,
+  siteRoomGate,
+  siteRoomGateForm,
+  signalLabel,
+  textLink,
+  textLinkMuted,
+} from "@/ui";
 
 function isDefaultGuestName(name: string) {
   return name.trim().toLowerCase() === DEFAULT_GUEST_DISPLAY_NAME.toLowerCase();
@@ -93,29 +110,29 @@ export function RoomAccessGate({
 
   return (
     <SiteCatalogShell>
-      <section className="home-bento-panel site-panel">
-        <Link to="/rooms" className="text-link text-link--muted site-back-link">
+      <section className={cn(homeBentoPanel, sitePanel)}>
+        <Link to="/rooms" className={cn(textLink, textLinkMuted, siteBackLink)}>
           {t("room.gateBack")}
         </Link>
       </section>
-      <section className="home-bento-panel site-panel site-panel--compact">
-        <div className="site-room-gate">
-          <span className="home-cell-code">RL-00</span>
-          <div className="signal-label text-muted mb-6">
+      <section className={cn(homeBentoPanel, sitePanelCompact)}>
+        <div className={siteRoomGate}>
+          <span className={homeCellCode}>RL-00</span>
+          <div className={cn(signalLabel, "text-muted mb-6")}>
             <Radio size={18} aria-hidden="true" />
             <span className="text-xs">{t("room.gateKicker")}</span>
           </div>
-          <h1 className="home-section-title break-words">{roomName}</h1>
-          <p className="site-page-lead">{leadText}</p>
+          <h1 className={cn(homeSectionTitle, "break-words")}>{roomName}</h1>
+          <p className="mt-4 max-w-xl text-[0.9375rem] leading-[1.65] text-muted">{leadText}</p>
           <form
-            className="auth-form site-room-gate-form"
+            className={cn(authForm, siteRoomGateForm)}
             onSubmit={(e) => {
               e.preventDefault();
               if (!enter.isPending) enter.mutate();
             }}
           >
             {showNameField ? (
-              <div className="field-group">
+              <div className={fieldGroup}>
                 <label htmlFor="room-guest-name">{t("room.gateNameLabel")}</label>
                 <Input
                   id="room-guest-name"
@@ -130,7 +147,7 @@ export function RoomAccessGate({
               </div>
             ) : null}
             {passwordRequired ? (
-              <div className="field-group">
+              <div className={fieldGroup}>
                 <label htmlFor="room-password">{t("room.gatePasswordLabel")}</label>
                 <Input
                   id="room-password"
@@ -143,7 +160,7 @@ export function RoomAccessGate({
               </div>
             ) : null}
             {error ? (
-              <p className="field-error" role="alert">
+              <p className={fieldError} role="alert">
                 {error}
               </p>
             ) : null}

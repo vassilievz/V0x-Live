@@ -1,4 +1,11 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/cn";
+import {
+  focusPage,
+  focusPageInner,
+  focusPageInnerAuth,
+  focusPageInnerFull,
+} from "@/ui";
 
 type FocusPageShellProps = {
   children: ReactNode;
@@ -7,15 +14,14 @@ type FocusPageShellProps = {
 
 export function FocusPageShell({ children, width = "narrow" }: FocusPageShellProps) {
   return (
-    <div className="focus-page">
+    <div className={focusPage}>
       <div
-        className={
-          width === "auth"
-            ? "site-container focus-page-inner focus-page-inner--auth"
-            : width === "full"
-              ? "site-container focus-page-inner focus-page-inner--full"
-              : "site-container focus-page-inner"
-        }
+        className={cn(
+          "site-container",
+          focusPageInner,
+          width === "auth" && focusPageInnerAuth,
+          width === "full" && focusPageInnerFull,
+        )}
       >
         {children}
       </div>

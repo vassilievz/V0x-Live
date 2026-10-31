@@ -8,6 +8,28 @@ import { Button, Input } from "@v0xlive/ui";
 import { UserAvatar } from "@/components/user/UserAvatar";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { authApi, ApiError } from "@/lib/api";
+import { cn } from "@/lib/cn";
+import {
+  actionLink,
+  fieldError,
+  fieldGroup,
+  fieldHelp,
+  headerSessionChip,
+  headerSessionChipPending,
+  headerSessionChipTrigger,
+  headerSessionDropdown,
+  headerSessionDropdownActions,
+  headerSessionDropdownForm,
+  headerSessionDropdownItem,
+  headerSessionDropdownKicker,
+  headerSessionDropdownName,
+  headerSessionDropdownPreview,
+  headerSessionMenu,
+  headerSessionMenuOpen,
+  headerSessionName,
+  homeBento,
+  homeCellCode,
+} from "@/ui";
 
 function isDefaultGuestName(name: string) {
   return name.trim().toLowerCase() === DEFAULT_GUEST_DISPLAY_NAME.toLowerCase();
@@ -71,9 +93,9 @@ export function HeaderAccount() {
 
   if (session.isLoading && !session.data) {
     return (
-      <div className="header-session-chip header-session-chip--pending" aria-hidden="true">
+      <div className={headerSessionChipPending} aria-hidden="true">
         <UserAvatar name={DEFAULT_GUEST_DISPLAY_NAME} src={resolveGuestAvatar()} size="sm" />
-        <span className="header-session-name">{t("nav.guest")}</span>
+        <span className={headerSessionName}>{t("nav.guest")}</span>
       </div>
     );
   }
@@ -117,12 +139,12 @@ export function HeaderAccount() {
     <>
       <div
         ref={rootRef}
-        className={`header-session-menu${open ? " is-open" : ""}`}
+        className={cn(headerSessionMenu, open && headerSessionMenuOpen)}
       >
-        <div className="header-session-chip">
+        <div className={headerSessionChip}>
           <button
             type="button"
-            className="header-session-chip-trigger"
+            className={headerSessionChipTrigger}
             aria-expanded={open}
             aria-haspopup="dialog"
             aria-controls={menuId}
@@ -130,26 +152,26 @@ export function HeaderAccount() {
             onClick={() => setOpen((value) => !value)}
           >
             <UserAvatar name={previewName} src={previewAvatar} size="sm" />
-            <span className="header-session-name">{chipLabel}</span>
+            <span className={headerSessionName}>{chipLabel}</span>
           </button>
         </div>
         {open ? (
           <div
             id={menuId}
-            className="header-session-dropdown home-bento"
+            className={cn(headerSessionDropdown, homeBento)}
             role="dialog"
             aria-label={t("nav.sessionMenuAria")}
           >
-            <p className="header-session-dropdown-kicker">
-              <span className="home-cell-code">ID</span>
+            <p className={headerSessionDropdownKicker}>
+              <span className={homeCellCode}>ID</span>
               {t("nav.sessionMenuKicker")}
             </p>
-            <div className="header-session-dropdown-preview">
+            <div className={headerSessionDropdownPreview}>
               <UserAvatar name={previewName} src={previewAvatar} size="md" />
-              <p className="header-session-dropdown-name">{chipLabel}</p>
+              <p className={headerSessionDropdownName}>{chipLabel}</p>
             </div>
-            <form className="header-session-dropdown-form" onSubmit={handleSave}>
-              <div className="field-group">
+            <form className={headerSessionDropdownForm} onSubmit={handleSave}>
+              <div className={fieldGroup}>
                 <label htmlFor="header-session-name">{t("nav.sessionNameLabel")}</label>
                 <Input
                   id="header-session-name"
@@ -161,7 +183,7 @@ export function HeaderAccount() {
                   autoComplete="nickname"
                 />
               </div>
-              <div className="field-group">
+              <div className={fieldGroup}>
                 <label htmlFor="header-session-avatar">{t("nav.sessionAvatarLabel")}</label>
                 <Input
                   id="header-session-avatar"
@@ -171,10 +193,10 @@ export function HeaderAccount() {
                   inputMode="url"
                   autoComplete="off"
                 />
-                <p className="field-help">{t("nav.sessionAvatarHint")}</p>
+                <p className={fieldHelp}>{t("nav.sessionAvatarHint")}</p>
               </div>
               {saveError ? (
-                <p className="field-error" role="alert">
+                <p className={fieldError} role="alert">
                   {saveError}
                 </p>
               ) : null}
@@ -190,10 +212,10 @@ export function HeaderAccount() {
                 {updateProfile.isPending ? t("nav.sessionSaving") : t("nav.sessionSave")}
               </Button>
             </form>
-            <div className="header-session-dropdown-actions">
+            <div className={headerSessionDropdownActions}>
               <Link
                 to="/dashboard"
-                className="header-session-dropdown-item"
+                className={headerSessionDropdownItem}
                 onClick={() => setOpen(false)}
               >
                 <LayoutGrid size={16} aria-hidden="true" />
@@ -203,7 +225,7 @@ export function HeaderAccount() {
           </div>
         ) : null}
       </div>
-      <Link to="/dashboard" className="action-link">
+      <Link to="/dashboard" className={actionLink}>
         {t("nav.createRoom")} <ArrowUpRight aria-hidden="true" />
       </Link>
     </>

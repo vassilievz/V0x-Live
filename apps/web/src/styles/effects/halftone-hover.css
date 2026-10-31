@@ -1,0 +1,98 @@
+.home-step-cell,
+.home-highlight-cell {
+  --hx: 50%;
+  --hy: 50%;
+}
+
+.home-step-cell__halftone,
+.home-highlight-cell__halftone {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 380ms ease;
+}
+
+.home-step-cell__halftone {
+  color: color-mix(in oklab, var(--color-muted) 40%, var(--color-border));
+}
+
+.home-highlight-cell__halftone {
+  color: color-mix(in oklab, var(--color-muted) 42%, var(--color-border));
+}
+
+.home-step-cell.is-hover .home-step-cell__halftone,
+.home-highlight-cell.is-hover .home-highlight-cell__halftone {
+  opacity: 1;
+}
+
+.home-step-cell.is-hover::after,
+.home-highlight-cell.is-hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-step-cell.is-hover::after {
+  background: radial-gradient(
+    ellipse 78% 62% at var(--hx, 50%) var(--hy, 50%),
+    rgb(0 0 0 / 0.5) 0%,
+    rgb(0 0 0 / 0.16) 48%,
+    transparent 74%
+  );
+}
+
+.home-highlight-cell.is-hover::after {
+  background: radial-gradient(
+    ellipse 85% 70% at var(--hx, 50%) var(--hy, 50%),
+    rgb(0 0 0 / 0.55) 0%,
+    rgb(0 0 0 / 0.2) 45%,
+    transparent 72%
+  );
+}
+
+.home-step-cell__inner,
+.home-highlight-cell__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.home-step-cell.is-hover .home-cell-code,
+.home-highlight-cell.is-hover .home-cell-code {
+  color: color-mix(in oklab, var(--color-foreground) 55%, var(--color-muted));
+}
+
+.home-step-cell.is-hover .home-step-num {
+  color: color-mix(in oklab, var(--color-foreground) 42%, var(--color-disabled));
+}
+
+.home-step-cell.is-hover h3,
+.home-highlight-cell.is-hover h3 {
+  color: var(--color-foreground);
+}
+
+.home-step-cell.is-hover p {
+  color: color-mix(in oklab, var(--color-foreground) 72%, var(--color-muted));
+}
+
+.home-highlight-cell.is-hover p {
+  color: color-mix(in oklab, var(--color-foreground) 78%, var(--color-muted));
+}
+
+.home-step-cell .home-cell-code,
+.home-highlight-cell .home-cell-code,
+.home-step-cell h3,
+.home-highlight-cell h3,
+.home-step-cell p,
+.home-highlight-cell p,
+.home-step-num {
+  transition: color 280ms ease;
+}
+
+.home-step-num {
+  transition: color 320ms var(--ease-signal, ease);
+}

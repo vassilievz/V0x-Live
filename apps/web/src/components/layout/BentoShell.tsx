@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { useBentoMeta, type BentoMetaPreset } from "@/i18n/bentoMeta";
+import { cn } from "@/lib/cn";
+import { homeBento, homeMetaBar, homePage } from "@/ui";
 
 type BentoShellProps = {
   meta?: readonly string[];
@@ -19,10 +21,10 @@ export function BentoShell({
   const labels = meta ?? defaultMeta;
 
   return (
-    <div className="home-page">
-      <div className="site-container home-bento">
+    <div className={homePage}>
+      <div className={cn("site-container", homeBento)}>
         {showMetaBar ? (
-          <div className="home-meta-bar" aria-hidden="true">
+          <div className={homeMetaBar} aria-hidden="true">
             {labels.map((label, index) => (
               <span key={`${index}-${label}`}>{label}</span>
             ))}

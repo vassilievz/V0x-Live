@@ -1,0 +1,49 @@
+.home-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgb(0 0 0 / 0.72) 0%,
+    rgb(0 0 0 / 0.38) 42%,
+    rgb(0 0 0 / 0.38) 58%,
+    rgb(0 0 0 / 0.72) 100%
+  );
+}
+
+@media (max-width: 900px) {
+  .home-hero::after {
+    background: linear-gradient(
+      180deg,
+      rgb(0 0 0 / 0.78) 0%,
+      rgb(0 0 0 / 0.42) 42%,
+      rgb(0 0 0 / 0.2) 100%
+    );
+  }
+}
+
+.home-hero-art-image {
+  animation: home-art-depth 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.home-hero-art-grain.is-ready {
+  opacity: 1;
+}
+
+.locale-menu-animate {
+  animation: locale-menu-in 180ms var(--ease-signal) both;
+}
+
+.skeleton-card,
+.room-card-explore--skeleton {
+  animation: skeleton-pulse 1.5s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locale-menu-animate {
+    animation: none;
+  }
+}

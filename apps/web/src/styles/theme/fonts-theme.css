@@ -1,0 +1,82 @@
+﻿@font-face {
+  font-family: "Geist Sans";
+  src: url("/fonts/geist/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/geist/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Geist Sans", system-ui, sans-serif;
+  --font-display: "Geist Sans", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  /* Broadcast monochrome studio palette + on-air accent */
+  --color-background: #000000;
+  --color-secondary: #050505;
+  --color-surface: #0a0a0a;
+  --color-surface-elevated: #0a0a0a;
+  --color-surface-muted: #141414;
+  --color-input: #0a0a0a;
+  --color-foreground: #fafafa;
+  --filter-site-gif: grayscale(1) brightness(3.1) contrast(1.08);
+  --color-muted: #8c8c8c;
+  --color-disabled: #5c5c5c;
+  --color-border: #2e2e2e;
+  --color-accent: #ffffff;
+  --color-accent-foreground: #000000;
+  --color-accent-dim: #cccccc;
+  --color-signal: #fafafa;
+  --color-success: #fafafa;
+  --color-danger: #8a8a8a;
+  --color-live: #fafafa;
+  --color-paper: #fafafa;
+  --color-paper-muted: #8c8c8c;
+  --shadow-glow-sm: none;
+  --shadow-glow: none;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.625rem;
+}
+
+:root {
+  --page-width: 1200px;
+  --gutter: clamp(20px, 4vw, 48px);
+  --ease-signal: cubic-bezier(0.22, 1, 0.36, 1);
+  --type-hero: clamp(2.25rem, 4.5vw, 3.25rem);
+  --type-section: clamp(1.75rem, 3vw, 2rem);
+  --type-page: clamp(1.75rem, 3.2vw, 2rem);
+  --bento-pad-x: clamp(20px, 3vw, 28px);
+  --bento-pad-y: clamp(26px, 3.5vw, 34px);
+  --bento-head-gap: clamp(20px, 2.5vw, 28px);
+}
+
+@layer base {
+  *, *::before, *::after { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; scroll-padding-top: 100px; color-scheme: dark; -webkit-font-smoothing: antialiased; }
+  body { margin: 0; min-width: 320px; min-height: 100dvh; background: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); font-size: 15px; line-height: 1.55; }
+  button, a, input { -webkit-tap-highlight-color: transparent; }
+  button:not(:disabled), summary { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--color-foreground); outline-offset: 5px; }
+  ::selection { background: color-mix(in oklab, var(--color-foreground) 35%, black); color: #fafafa; }
+  h1, h2, h3, p { margin: 0; }
+  input[type="radio"] { accent-color: var(--color-foreground); }
+}
+
+@utility text-signal { color: var(--color-signal); }
+@utility bg-signal { background-color: var(--color-signal); }
+@utility border-signal { border-color: var(--color-signal); }
+
+@utility text-balance { text-wrap: balance; }
+@utility border-hairline { border-color: color-mix(in oklab, var(--color-foreground) 12%, transparent); }
+@utility bg-panel { background-color: var(--color-surface); }
+
+@utility site-container {
+  width: min(100% - var(--gutter) * 2, var(--page-width));
+  margin-inline: auto;
+}

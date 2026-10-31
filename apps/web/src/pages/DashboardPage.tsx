@@ -9,6 +9,36 @@ import { authApi, roomsApi, ApiError } from "@/lib/api";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
 import { SitePageHead } from "@/components/layout/SitePageHead";
 import { DashboardCreateVisual } from "@/features/rooms/components/DashboardCreateVisual";
+import { cn } from "@/lib/cn";
+import {
+  catalogFormColumn,
+  dashboardPanel,
+  dashboardPanelNotice,
+  dashboardWorkspace,
+  dashboardWorkspaceMain,
+  fieldError,
+  fieldGroup,
+  fieldHelp,
+  fieldLabel,
+  focusCard,
+  focusCardDivider,
+  focusCardForm,
+  focusCardFormInline,
+  focusCardSubtitle,
+  focusCardTitle,
+  focusJoinRow,
+  focusPageNotice,
+  homeBentoPanel,
+  notice,
+  noticeError,
+  sitePanel,
+  siteWorkspaceGrid,
+  siteWorkspaceMain,
+  textLink,
+  textLinkMuted,
+  visibilityChoice,
+  visibilityOptions,
+} from "@/ui";
 
 function sessionDisplayName(name: string, guestLabel: string) {
   return name.trim().toLowerCase() === DEFAULT_GUEST_DISPLAY_NAME.toLowerCase()
@@ -63,36 +93,36 @@ export function DashboardPage() {
 
   return (
     <SiteCatalogShell>
-      <section className="home-bento-panel site-panel">
+      <section className={cn(homeBentoPanel, sitePanel)}>
         <SitePageHead
           code="DB-00"
           wideTitle
           title={t("dashboard.title")}
           description={greeting ?? t("dashboard.lead")}
           actions={
-            <Link to="/rooms" className="text-link text-link--muted">
+            <Link to="/rooms" className={cn(textLink, textLinkMuted)}>
               {t("dashboard.publicRoomsLink")}
             </Link>
           }
         />
       </section>
 
-      <section className="home-bento-panel site-panel dashboard-panel">
+      <section className={cn(homeBentoPanel, sitePanel, dashboardPanel)}>
         {serviceDown ? (
-          <p className="notice notice--error focus-page-notice dashboard-panel__notice" role="alert">
+          <p className={cn(notice, noticeError, focusPageNotice, dashboardPanelNotice)} role="alert">
             {t("errors.serviceDown")}
           </p>
         ) : null}
 
-        <div className="dashboard-workspace site-workspace-grid">
-          <div className="site-workspace-main dashboard-workspace__main">
-            <div className="catalog-form-column focus-card" aria-labelledby="create-room-title">
-              <h2 id="create-room-title" className="focus-card-title">
+        <div className={cn(dashboardWorkspace, siteWorkspaceGrid)}>
+          <div className={cn(siteWorkspaceMain, dashboardWorkspaceMain)}>
+            <div className={cn(catalogFormColumn, focusCard(true))} aria-labelledby="create-room-title">
+              <h2 id="create-room-title" className={focusCardTitle}>
                 {t("dashboard.newRoom")}
               </h2>
 
-              <form onSubmit={handleCreate} className="focus-card-form">
-                <div className="field-group">
+              <form onSubmit={handleCreate} className={focusCardForm}>
+                <div className={fieldGroup}>
                   <label htmlFor="room-name">{t("dashboard.roomNameLabel")}</label>
                   <Input
                     id="room-name"
@@ -103,10 +133,10 @@ export function DashboardPage() {
                     maxLength={120}
                   />
                 </div>
-                <fieldset className="field-group">
-                  <legend className="field-label mb-3">{t("dashboard.visibilityLegend")}</legend>
-                  <div className="visibility-options">
-                    <label className="visibility-choice">
+                <fieldset className={fieldGroup}>
+                  <legend className={cn(fieldLabel, "mb-3")}>{t("dashboard.visibilityLegend")}</legend>
+                  <div className={visibilityOptions}>
+                    <label className={visibilityChoice}>
                       <input
                         type="radio"
                         name="visibility"
@@ -119,7 +149,7 @@ export function DashboardPage() {
                         <small>{t("dashboard.publicHint")}</small>
                       </span>
                     </label>
-                    <label className="visibility-choice">
+                    <label className={visibilityChoice}>
                       <input
                         type="radio"
                         name="visibility"
@@ -135,7 +165,7 @@ export function DashboardPage() {
                   </div>
                 </fieldset>
                 {error ? (
-                  <p className="field-error" role="alert">
+                  <p className={fieldError} role="alert">
                     {error instanceof ApiError ? error.message : t("errors.generic")}
                   </p>
                 ) : null}
@@ -148,20 +178,20 @@ export function DashboardPage() {
                   <ArrowUpRight size={18} aria-hidden="true" />
                 </Button>
                 {!ready ? (
-                  <p className="field-help" role="status">
+                  <p className={fieldHelp} role="status">
                     {me.isLoading ? t("dashboard.connecting") : t("dashboard.waitingService")}
                   </p>
                 ) : null}
               </form>
 
-              <div className="focus-card-divider" role="separator" />
+              <div className={focusCardDivider} role="separator" />
 
-              <div className="focus-card-secondary">
-                <h3 className="focus-card-subtitle">
+              <div>
+                <h3 className={focusCardSubtitle}>
                   <KeyRound size={16} aria-hidden="true" /> {t("dashboard.inviteTitle")}
                 </h3>
-                <form onSubmit={handleJoin} className="focus-card-form focus-card-form--inline">
-                  <div className="field-group focus-join-row">
+                <form onSubmit={handleJoin} className={cn(focusCardForm, focusCardFormInline)}>
+                  <div className={cn(fieldGroup, focusJoinRow)}>
                     <label htmlFor="invite-code" className="sr-only">
                       {t("dashboard.inviteCodeLabel")}
                     </label>
@@ -182,7 +212,7 @@ export function DashboardPage() {
                     </Button>
                   </div>
                   {joinByCode.error ? (
-                    <p className="field-error" role="alert">
+                    <p className={fieldError} role="alert">
                       {joinByCode.error instanceof ApiError
                         ? joinByCode.error.message
                         : t("errors.joinRoom")}

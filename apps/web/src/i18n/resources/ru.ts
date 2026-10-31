@@ -19,6 +19,10 @@ export const ru = {
         es: "Español",
       },
     },
+    community: {
+      discord: "Discord",
+      discordAria: "Вступить в сообщество V0x Live в Discord (откроется в новой вкладке)",
+    },
   },
   nav: {
     exploreRooms: "Комнаты",
@@ -44,6 +48,7 @@ export const ru = {
     findGroup: "НАЙДИ СВОЮ ГРУППУ",
     yourSpace: "ТВОЁ ПРОСТРАНСТВО",
     createRoom: "Создать комнату",
+    community: "СООБЩЕСТВО",
     copyright: "© {{year}} V0x Live.",
     tagline: "Сделано, чтобы быть вместе.",
   },

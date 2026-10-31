@@ -3,6 +3,24 @@ import { useTranslation } from "react-i18next";
 import { Music2, X } from "lucide-react";
 import { Button, Input } from "@v0xlive/ui";
 import { parseYouTubeUrl } from "@/features/room-music/youtube";
+import { cn } from "@/lib/cn";
+import {
+  fieldError,
+  fieldGroup,
+  fieldHelp,
+  fieldLabel,
+  focusCard,
+  focusCardForm,
+  notice,
+  noticeError,
+  roomMusicDialog,
+  roomMusicDialogBackdrop,
+  roomMusicDialogClose,
+  roomMusicDialogHead,
+  roomMusicDialogTitle,
+  visibilityChoice,
+  visibilityOptions,
+} from "@/ui";
 
 type ControlMode = "owner_only" | "everyone";
 
@@ -42,21 +60,21 @@ export function RoomMusicAddDialog({
   const valid = parseYouTubeUrl(url) != null;
 
   return (
-    <div className="room-music-dialog-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className={roomMusicDialogBackdrop} role="presentation" onMouseDown={onClose}>
       <div
-        className="room-music-dialog focus-card"
+        className={cn(roomMusicDialog, focusCard())}
         role="dialog"
         aria-labelledby="room-music-dialog-title"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="room-music-dialog-head">
-          <h2 id="room-music-dialog-title" className="room-music-dialog-title">
+        <div className={roomMusicDialogHead}>
+          <h2 id="room-music-dialog-title" className={roomMusicDialogTitle}>
             <Music2 className="size-[18px] text-muted" aria-hidden="true" />
             {t("music.dialogTitle")}
           </h2>
           <button
             type="button"
-            className="room-music-dialog-close"
+            className={roomMusicDialogClose}
             aria-label={t("music.dialogClose")}
             onClick={onClose}
           >
@@ -65,19 +83,19 @@ export function RoomMusicAddDialog({
         </div>
 
         <form
-          className="focus-card-form"
+          className={focusCardForm}
           onSubmit={(e) => {
             e.preventDefault();
             if (!valid || pending) return;
             onSubmit({ url: url.trim(), control_mode: controlMode });
           }}
         >
-          <p className="field-help">{t("music.dialogHelp")}</p>
+          <p className={fieldHelp}>{t("music.dialogHelp")}</p>
 
-          <fieldset className="field-group">
-            <span className="field-label">{t("music.controlLegend")}</span>
-            <div className="visibility-options">
-              <label className="visibility-choice" htmlFor={ownerId}>
+          <fieldset className={fieldGroup}>
+            <span className={fieldLabel}>{t("music.controlLegend")}</span>
+            <div className={visibilityOptions}>
+              <label className={visibilityChoice} htmlFor={ownerId}>
                 <input
                   id={ownerId}
                   type="radio"
@@ -90,7 +108,7 @@ export function RoomMusicAddDialog({
                   <small>{t("music.ownerOnlyHint")}</small>
                 </span>
               </label>
-              <label className="visibility-choice" htmlFor={everyoneId}>
+              <label className={visibilityChoice} htmlFor={everyoneId}>
                 <input
                   id={everyoneId}
                   type="radio"
@@ -106,8 +124,8 @@ export function RoomMusicAddDialog({
             </div>
           </fieldset>
 
-          <div className="field-group">
-            <label className="field-label" htmlFor={urlId}>
+          <div className={fieldGroup}>
+            <label className={fieldLabel} htmlFor={urlId}>
               {t("music.urlLabel")}
             </label>
             <Input
@@ -119,14 +137,14 @@ export function RoomMusicAddDialog({
               aria-invalid={url.length > 0 && !valid}
             />
             {url.length > 0 && !valid ? (
-              <p className="field-error" role="alert">
+              <p className={fieldError} role="alert">
                 {t("music.urlInvalid")}
               </p>
             ) : null}
           </div>
 
           {error ? (
-            <p className="notice notice--error" role="alert">
+            <p className={cn(notice, noticeError)} role="alert">
               {error}
             </p>
           ) : null}

@@ -1,0 +1,12 @@
+html:has(.room-app-root),
+html:has(.room-app-root) body,
+html:has(.room-app-root) #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+.room-app-root #conteudo-principal {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}

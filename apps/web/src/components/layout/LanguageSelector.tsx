@@ -9,6 +9,23 @@ import {
   isAppLocale,
 } from "@/i18n/locales";
 import { setAppLocale } from "@/i18n";
+import { cn } from "@/lib/cn";
+import {
+  homeBento,
+  homeCellCode,
+  localeChevron,
+  localeMenu,
+  localeOption,
+  localeOptionActive,
+  localeOptionCheck,
+  localeOptionCode,
+  localeOptionLabel,
+  localeOptionMeta,
+  localeSwitcherClasses,
+  localeSwitcherOpen,
+  localeTrigger,
+  localeTriggerLabel,
+} from "@/ui";
 
 type LanguageSelectorProps = {
   className?: string;
@@ -16,7 +33,7 @@ type LanguageSelectorProps = {
 };
 
 export function LanguageSelector({
-  className = "",
+  className,
   variant = "header",
 }: LanguageSelectorProps) {
   const { t, i18n } = useTranslation();
@@ -55,11 +72,11 @@ export function LanguageSelector({
   return (
     <div
       ref={rootRef}
-      className={`locale-switcher locale-switcher--${variant}${open ? " is-open" : ""}${className ? ` ${className}` : ""}`}
+      className={cn(localeSwitcherClasses(variant), open && localeSwitcherOpen, className)}
     >
       <button
         type="button"
-        className="locale-trigger"
+        className={localeTrigger}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={listId}
@@ -67,20 +84,20 @@ export function LanguageSelector({
         onClick={() => setOpen((value) => !value)}
       >
         <LocaleFlag locale={current} />
-        <span className="locale-trigger-label">
+        <span className={localeTriggerLabel}>
           {t(`common.language.names.${current}`)}
         </span>
         <ChevronDown
           size={15}
           strokeWidth={2}
-          className="locale-chevron"
+          className={localeChevron}
           aria-hidden="true"
         />
       </button>
       {open ? (
         <ul
           id={listId}
-          className="locale-menu home-bento"
+          className={cn(localeMenu, homeBento)}
           role="listbox"
           aria-label={t("common.language.label")}
         >
@@ -92,19 +109,19 @@ export function LanguageSelector({
                   type="button"
                   role="option"
                   aria-selected={active}
-                  className={`locale-option${active ? " is-active" : ""}`}
+                  className={cn(localeOption, active && localeOptionActive)}
                   onClick={() => pick(code)}
                 >
                   <LocaleFlag locale={code} />
-                  <span className="locale-option-label">
+                  <span className={localeOptionLabel}>
                     {t(`common.language.names.${code}`)}
                   </span>
-                  <span className="locale-option-meta">
-                    <span className="home-cell-code locale-option-code">
+                  <span className={localeOptionMeta}>
+                    <span className={cn(homeCellCode, localeOptionCode)}>
                       {localeMeta[code].shortLabel}
                     </span>
                     {active ? (
-                      <Check size={14} strokeWidth={2.5} className="locale-option-check" aria-hidden />
+                      <Check size={14} strokeWidth={2.5} className={localeOptionCheck} aria-hidden />
                     ) : null}
                   </span>
                 </button>

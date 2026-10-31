@@ -4,6 +4,11 @@ import {
   drawHalftoneField,
   seedFromCode,
 } from "@/components/background/halftoneNoise";
+import {
+  homeHighlightCell,
+  homeHighlightCellHalftone,
+  homeHighlightCellInner,
+} from "@/ui";
 
 type Props = {
   code: string;
@@ -140,13 +145,13 @@ export function HighlightHalftoneCell({ code, children }: Props) {
   }, [code]);
 
   return (
-    <li ref={cellRef} className="home-highlight-cell">
+    <li ref={cellRef} className={homeHighlightCell}>
       <canvas
         ref={canvasRef}
-        className="home-highlight-cell__halftone"
+        className={homeHighlightCellHalftone}
         aria-hidden="true"
       />
-      <div className="home-highlight-cell__inner">{children}</div>
+      <div className={homeHighlightCellInner}>{children}</div>
     </li>
   );
 }

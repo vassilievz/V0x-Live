@@ -7,6 +7,25 @@ import { UserAvatar } from "@/components/user/UserAvatar";
 import { roomsApi } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { participantRoleKey } from "@/i18n/participantRole";
+import {
+  roomPanel,
+  roomPanelEmbedded,
+  roomPanelHeading,
+  roomParticipantActions,
+  roomParticipantAvatar,
+  roomParticipantEmpty,
+  roomParticipantHead,
+  roomParticipantIconBtn,
+  roomParticipantList,
+  roomParticipantMain,
+  roomParticipantMedia,
+  roomParticipantName,
+  roomParticipantRole,
+  roomParticipantRoleHost,
+  roomParticipantRow,
+  roomStageTab,
+  roomStageTabActive,
+} from "@/ui";
 
 type Props = {
   roomId: string;
@@ -47,27 +66,27 @@ export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded }: P
   const count = list.data?.items.length ?? 0;
 
   return (
-    <div className={cn("room-panel", embedded && "room-panel--embedded")}>
+    <div className={cn(roomPanel, embedded && roomPanelEmbedded)}>
       {!embedded ? (
-        <p className="room-panel-heading">{t("participants.title")}</p>
+        <p className={roomPanelHeading}>{t("participants.title")}</p>
       ) : null}
-      <ul className="room-participant-list" aria-label={t("participants.title")}>
+      <ul className={roomParticipantList} aria-label={t("participants.title")}>
         {list.data?.items.map((p) => (
-          <li key={p.id} className="room-participant-row">
-            <UserAvatar name={p.display_name} size="sm" className="room-participant-avatar" />
-            <div className="room-participant-main min-w-0">
-              <div className="room-participant-head">
-                <p className="room-participant-name">{p.display_name}</p>
+          <li key={p.id} className={roomParticipantRow}>
+            <UserAvatar name={p.display_name} size="sm" className={roomParticipantAvatar} />
+            <div className={cn(roomParticipantMain, "min-w-0")}>
+              <div className={roomParticipantHead}>
+                <p className={roomParticipantName}>{p.display_name}</p>
                 <span
                   className={cn(
-                    "room-participant-role",
-                    p.role === "host" && "room-participant-role--host",
+                    roomParticipantRole,
+                    p.role === "host" && roomParticipantRoleHost,
                   )}
                 >
                   {t(`participants.roles.${participantRoleKey(p.role)}`)}
                 </span>
               </div>
-              <div className="room-participant-media" aria-label={t("participants.mediaStatus")}>
+              <div className={roomParticipantMedia} aria-label={t("participants.mediaStatus")}>
                 {p.muted ? (
                   <MicOff className="size-3.5 text-danger" aria-label={t("participants.muted")} />
                 ) : (
@@ -81,12 +100,12 @@ export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded }: P
               </div>
             </div>
             {p.role !== "host" && (canRemove || isHost) ? (
-              <div className="room-participant-actions">
+              <div className={roomParticipantActions}>
                 {canRemove ? (
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="room-participant-icon-btn"
+                    className={roomParticipantIconBtn}
                     aria-label={t("participants.removeAria", { name: p.display_name })}
                     disabled={remove.isPending}
                     onClick={() => remove.mutate(p.id)}
@@ -99,7 +118,7 @@ export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded }: P
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="room-participant-icon-btn"
+                      className={roomParticipantIconBtn}
                       aria-label={p.muted ? t("participants.unmute") : t("participants.mute")}
                       disabled={patch.isPending}
                       onClick={() =>
@@ -115,7 +134,7 @@ export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded }: P
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="room-participant-icon-btn"
+                      className={roomParticipantIconBtn}
                       aria-label={
                         p.can_publish
                           ? t("participants.blockVideo")
@@ -142,10 +161,10 @@ export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded }: P
           </li>
         ))}
         {list.isLoading ? (
-          <li className="room-participant-empty">{t("participants.loading")}</li>
+          <li className={roomParticipantEmpty}>{t("participants.loading")}</li>
         ) : null}
         {list.isSuccess && count === 0 ? (
-          <li className="room-participant-empty">{t("participants.empty")}</li>
+          <li className={roomParticipantEmpty}>{t("participants.empty")}</li>
         ) : null}
       </ul>
     </div>
@@ -167,7 +186,7 @@ export function SidePanelTab({
       onClick={onClick}
       role="tab"
       aria-selected={active}
-      className={cn("room-stage-tab", active && "room-stage-tab--active")}
+      className={cn(roomStageTab, active && roomStageTabActive)}
     >
       {children}
     </button>

@@ -4,6 +4,11 @@ import {
   drawHalftoneField,
   seedFromCode,
 } from "@/components/background/halftoneNoise";
+import {
+  homeStepCell,
+  homeStepCellHalftone,
+  homeStepCellInner,
+} from "@/ui";
 
 type Props = {
   code: string;
@@ -158,13 +163,13 @@ export function StepHalftoneCell({ code, children }: Props) {
   }, [code]);
 
   return (
-    <li ref={cellRef} className="home-step-cell">
+    <li ref={cellRef} className={homeStepCell}>
       <canvas
         ref={canvasRef}
-        className="home-step-cell__halftone"
+        className={homeStepCellHalftone}
         aria-hidden="true"
       />
-      <div className="home-step-cell__inner">{children}</div>
+      <div className={homeStepCellInner}>{children}</div>
     </li>
   );
 }

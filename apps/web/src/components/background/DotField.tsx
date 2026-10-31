@@ -6,6 +6,7 @@
 
 import { type ReactNode, useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
+import { dotField, dotFieldCanvas, dotFieldCanvasWrap, dotFieldContent } from "@/ui";
 
 export interface DotFieldProps {
   className?: string;
@@ -638,13 +639,13 @@ export function DotField({
 
   return (
     <div
-      className={cn("dot-field", className)}
+      className={cn(dotField, className)}
       ref={rootRef}
     >
-      <div aria-hidden="true" className="dot-field__canvas-wrap">
-        <canvas className="dot-field__canvas" ref={canvasRef} />
+      <div aria-hidden="true" className={dotFieldCanvasWrap}>
+        <canvas className={dotFieldCanvas} ref={canvasRef} />
       </div>
-      {children ? <div className="dot-field__content">{children}</div> : null}
+      {children ? <div className={dotFieldContent}>{children}</div> : null}
     </div>
   );
 }

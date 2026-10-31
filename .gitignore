@@ -3,6 +3,7 @@ dist
 build
 .env
 .env.local
+.env.railway
 .env.*.local
 !.env.example
 *.log
@@ -13,6 +14,7 @@ coverage
 apps/api/bin
 apps/api/tmp
 apps/api/.env
+infrastructure/livekit/.env
 *.exe
 .tools
 .idea

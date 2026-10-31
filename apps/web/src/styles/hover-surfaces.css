@@ -208,12 +208,14 @@
 }
 
 /* —— Footer links — dashed grain underline */
-.site-footer-dotfield .footer-links a {
+.site-footer-dotfield .footer-links a,
+.site-footer-dotfield .footer-links .discord-community-link {
   position: relative;
   text-decoration: none;
 }
 
-.site-footer-dotfield .footer-links a::after {
+.site-footer-dotfield .footer-links a::after,
+.site-footer-dotfield .footer-links .discord-community-link::after {
   content: "";
   position: absolute;
   left: 0;
@@ -230,7 +232,8 @@
   );
 }
 
-.site-footer-dotfield .footer-links a:hover::after {
+.site-footer-dotfield .footer-links a:hover::after,
+.site-footer-dotfield .footer-links .discord-community-link:hover::after {
   transform: scaleX(1);
 }
 

@@ -1,0 +1,104 @@
+.media-gif-screen {
+  mix-blend-mode: screen;
+  filter: grayscale(1) brightness(3.35) contrast(1.06);
+}
+
+.media-gif-about {
+  mix-blend-mode: screen;
+  filter: grayscale(1) brightness(3.35) contrast(1.06);
+  transform: scale(1.05);
+}
+
+.media-gif-grain-explore {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  mix-blend-mode: soft-light;
+  background-image: radial-gradient(circle, rgb(255 255 255 / 0.07) 0.5px, transparent 0.51px);
+  background-size: 5px 5px;
+}
+
+.media-gif-grain-dashboard {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: soft-light;
+  background-image: radial-gradient(circle, rgb(255 255 255 / 0.07) 0.5px, transparent 0.51px);
+  background-size: 5px 5px;
+}
+
+.media-gif-veil-explore {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 0.88) 0%, rgb(0 0 0 / 0.25) 32%, rgb(0 0 0 / 0.15) 100%),
+    linear-gradient(180deg, rgb(0 0 0 / 0.55) 0%, transparent 38%, rgb(0 0 0 / 0.62) 100%);
+}
+
+.media-gif-veil-dashboard {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0.14) 20%, transparent 34%),
+    linear-gradient(180deg, rgb(0 0 0 / 0.1) 0%, transparent 58%, rgb(0 0 0 / 0.12) 100%);
+}
+
+.signal-media-frame {
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid color-mix(in oklab, var(--color-foreground) 22%, var(--color-border));
+}
+
+.explore-rooms-hero__frame.signal-media-frame {
+  inset: clamp(14px, 2.5vw, 22px);
+  opacity: 0.85;
+  border-color: color-mix(in oklab, var(--color-foreground) 22%, var(--color-border));
+}
+
+.dashboard-create-visual__frame.signal-media-frame {
+  inset: clamp(16px, 2.8vw, 24px);
+  opacity: 0.82;
+  border-color: color-mix(in oklab, var(--color-foreground) 20%, var(--color-border));
+}
+
+.signal-media-frame::before,
+.signal-media-frame::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--color-foreground) 45%, var(--color-border));
+}
+
+.dashboard-create-visual__frame.signal-media-frame::before,
+.dashboard-create-visual__frame.signal-media-frame::after {
+  border-color: color-mix(in oklab, var(--color-foreground) 42%, var(--color-border));
+}
+
+.signal-media-frame::before {
+  top: -1px;
+  left: -1px;
+  border-width: 1px 0 0 1px;
+}
+
+.signal-media-frame::after {
+  right: -1px;
+  bottom: -1px;
+  border-width: 0 1px 1px 0;
+}
+
+.signal-media-frame-label {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--color-foreground) 55%, var(--color-muted));
+}

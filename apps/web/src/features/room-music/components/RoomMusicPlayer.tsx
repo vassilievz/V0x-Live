@@ -14,6 +14,22 @@ import type { RealtimeEvent, RoomMusicPatchBody, RoomMusicState } from "@v0xlive
 import { roomsApi } from "@/lib/api";
 import { musicThumbnailUrl } from "@/features/room-music/metadata";
 import { useRoomMusicYouTube } from "@/features/room-music/useRoomMusicYouTube";
+import {
+  roomMusicIconBtn,
+  roomMusicPlayBtn,
+  roomMusicPlayer,
+  roomMusicPlayerArt,
+  roomMusicPlayerBody,
+  roomMusicPlayerClose,
+  roomMusicPlayerControls,
+  roomMusicPlayerFoot,
+  roomMusicPlayerFrame,
+  roomMusicPlayerHead,
+  roomMusicPlayerKicker,
+  roomMusicPlayerSub,
+  roomMusicPlayerTitle,
+  roomMusicVolume,
+} from "@/ui";
 
 type Props = {
   roomId: string;
@@ -105,15 +121,15 @@ export function RoomMusicPlayer({ roomId, lastEvent, viewerRole }: Props) {
   const skipForwardLabel = isPlaylist ? t("music.skipNextTrack") : t("music.skipNextSec");
 
   return (
-    <section className="room-music-player" aria-label={t("music.sectionAria")}>
-      <div className="room-music-player-head">
-        <p className="room-music-player-kicker">
+    <section className={roomMusicPlayer} aria-label={t("music.sectionAria")}>
+      <div className={roomMusicPlayerHead}>
+        <p className={roomMusicPlayerKicker}>
           {t("music.kicker")}
           {!canControl ? <Lock className="size-3.5" aria-hidden="true" /> : null}
         </p>
         <button
           type="button"
-          className="room-music-player-close"
+          className={roomMusicPlayerClose}
           aria-label={t("music.remove")}
           disabled={!canRemove}
           onClick={() => {
@@ -124,8 +140,8 @@ export function RoomMusicPlayer({ roomId, lastEvent, viewerRole }: Props) {
         </button>
       </div>
 
-      <div className="room-music-player-body">
-        <div className="room-music-player-art">
+      <div className={roomMusicPlayerBody}>
+        <div className={roomMusicPlayerArt}>
           {thumb ? (
             <img
               key={state.video_id ?? "no-video"}
@@ -138,16 +154,16 @@ export function RoomMusicPlayer({ roomId, lastEvent, viewerRole }: Props) {
             />
           ) : null}
         </div>
-        <div className="room-music-player-meta">
-          <p className="room-music-player-title">{state.title ?? "YouTube"}</p>
-          <p className="room-music-player-sub">{channelLine}</p>
+        <div>
+          <p className={roomMusicPlayerTitle}>{state.title ?? "YouTube"}</p>
+          <p className={roomMusicPlayerSub}>{channelLine}</p>
         </div>
       </div>
 
-      <div className="room-music-player-controls">
+      <div className={roomMusicPlayerControls}>
         <button
           type="button"
-          className="room-music-icon-btn"
+          className={roomMusicIconBtn}
           aria-label={skipBackLabel}
           disabled={!canControl}
           onClick={onSkipBack}
@@ -156,7 +172,7 @@ export function RoomMusicPlayer({ roomId, lastEvent, viewerRole }: Props) {
         </button>
         <button
           type="button"
-          className="room-music-play-btn"
+          className={roomMusicPlayBtn}
           aria-label={localPlaying ? t("music.pause") : t("music.play")}
           disabled={!canControl}
           onClick={sendPlayPause}
@@ -165,14 +181,14 @@ export function RoomMusicPlayer({ roomId, lastEvent, viewerRole }: Props) {
         </button>
         <button
           type="button"
-          className="room-music-icon-btn"
+          className={roomMusicIconBtn}
           aria-label={skipForwardLabel}
           disabled={!canControl}
           onClick={onSkipForward}
         >
           <SkipForward className="size-4" />
         </button>
-        <label className="room-music-volume">
+        <label className={roomMusicVolume}>
           <Volume2 className="size-4 shrink-0" aria-hidden="true" />
           <input
             type="range"
@@ -185,8 +201,8 @@ export function RoomMusicPlayer({ roomId, lastEvent, viewerRole }: Props) {
         </label>
       </div>
 
-      <p className="room-music-player-foot">{lockedLabel}</p>
-      <div id={frameId} className="room-music-player-frame" aria-hidden="true" />
+      <p className={roomMusicPlayerFoot}>{lockedLabel}</p>
+      <div id={frameId} className={roomMusicPlayerFrame} aria-hidden="true" />
     </section>
   );
 }

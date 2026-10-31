@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Wifi, WifiOff } from "lucide-react";
 import { Button } from "@v0xlive/ui";
 import { ApiError, roomsApi } from "@/lib/api";
+import { cn } from "@/lib/cn";
 import { useEnsureGuestSession } from "@/hooks/useEnsureGuestSession";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
@@ -16,6 +17,19 @@ import {
   ParticipantsPanel,
 } from "@/features/participants/components/ParticipantsPanel";
 import { RoomStageShell } from "@/features/rooms/components/RoomStageShell";
+import {
+  actionLink,
+  actionLinkPill,
+  fieldHelp,
+  homeBentoPanel,
+  homeCellCode,
+  homeSectionTitle,
+  roomStageAlert,
+  roomStagePlaceholder,
+  roomStagePlaceholderMuted,
+  sitePanel,
+  sitePanelCompact,
+} from "@/ui";
 
 export function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -97,8 +111,8 @@ export function RoomPage() {
   if (waitingSession && !joined) {
     return (
       <SiteCatalogShell>
-        <section className="home-bento-panel site-panel site-panel--compact">
-          <p className="field-help" role="status">
+        <section className={cn(homeBentoPanel, sitePanelCompact)}>
+          <p className={fieldHelp} role="status">
             {t("room.loading")}
           </p>
         </section>
@@ -109,11 +123,11 @@ export function RoomPage() {
   if (preview.isError) {
     return (
       <SiteCatalogShell>
-        <section className="home-bento-panel site-panel">
-          <span className="home-cell-code">RL-ERR</span>
-          <h1 className="home-section-title">{t("room.errorTitle")}</h1>
-          <p className="site-page-lead">{t("room.errorBody")}</p>
-          <Link to="/rooms" className="action-link action-link--pill mt-8 inline-flex">
+        <section className={cn(homeBentoPanel, sitePanel)}>
+          <span className={homeCellCode}>RL-ERR</span>
+          <h1 className={homeSectionTitle}>{t("room.errorTitle")}</h1>
+          <p className="mt-4 max-w-xl text-[0.9375rem] leading-[1.65] text-muted">{t("room.errorBody")}</p>
+          <Link to="/rooms" className={cn(actionLink, actionLinkPill, "mt-8 inline-flex")}>
             {t("room.backToRooms")}
           </Link>
         </section>
@@ -141,8 +155,8 @@ export function RoomPage() {
   if (!joined && join.isPending) {
     return (
       <SiteCatalogShell>
-        <section className="home-bento-panel site-panel site-panel--compact">
-          <p className="field-help" role="status">
+        <section className={cn(homeBentoPanel, sitePanelCompact)}>
+          <p className={fieldHelp} role="status">
             {t("room.joining")}
           </p>
         </section>
@@ -167,7 +181,7 @@ export function RoomPage() {
       main={
         <>
           {join.isError && join.error instanceof ApiError ? (
-            <p className="room-stage-alert" role="alert">
+            <p className={roomStageAlert} role="alert">
               {join.error.message}
             </p>
           ) : null}
@@ -178,7 +192,7 @@ export function RoomPage() {
               serverUrl={livekit.data.url}
             />
           ) : livekit.isError ? (
-            <div className="room-stage-placeholder" role="status">
+            <div className={roomStagePlaceholder} role="status">
               <WifiOff className="size-8 text-muted" aria-hidden="true" />
               <p>{t("room.livekitError")}</p>
               <Button
@@ -189,7 +203,7 @@ export function RoomPage() {
               </Button>
             </div>
           ) : (
-            <div className="room-stage-placeholder room-stage-placeholder--muted" role="status">
+            <div className={cn(roomStagePlaceholder, roomStagePlaceholderMuted)} role="status">
               <Wifi className="size-6 animate-pulse" aria-hidden="true" />
               <p>{t("room.mediaConnecting")}</p>
             </div>

@@ -4,6 +4,32 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, MessageSquare, Users } from "lucide-react";
 import { Button } from "@v0xlive/ui";
 import { SidePanelTab } from "@/features/participants/components/ParticipantsPanel";
+import { cn } from "@/lib/cn";
+import {
+  homeCellCode,
+  roomStageActionBtn,
+  roomStageBack,
+  roomStageBackdrop,
+  roomStageBody,
+  roomStageCode,
+  roomStageHeader,
+  roomStageHeaderActions,
+  roomStageHeaderBrand,
+  roomStageHeaderCopy,
+  roomStageMain,
+  roomStageMainFill,
+  roomStageRail,
+  roomStageRailHandle,
+  roomStageRailPanel,
+  roomStageRailTabs,
+  roomStageRailToggle,
+  roomStageShell,
+  roomStageStatus,
+  roomStageStatusDot,
+  roomStageStatusLive,
+  roomStageTitle,
+  roomStageWorkspace,
+} from "@/ui";
 
 type Side = "chat" | "people";
 
@@ -43,35 +69,35 @@ export function RoomStageShell({
   const { t } = useTranslation();
 
   return (
-    <div className="room-stage-shell">
-      <header className="room-stage-header">
-        <div className="room-stage-header-brand">
+    <div className={roomStageShell}>
+      <header className={roomStageHeader}>
+        <div className={roomStageHeaderBrand}>
           <Link
             to="/dashboard"
-            className="room-stage-back"
+            className={roomStageBack}
             aria-label={t("room.backToSpace")}
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
           </Link>
-          <div className="room-stage-header-copy">
-            <span className="home-cell-code room-stage-code">{t("room.headerCode")}</span>
-            <h1 className="room-stage-title">{roomName}</h1>
+          <div className={roomStageHeaderCopy}>
+            <span className={cn(homeCellCode, roomStageCode)}>{t("room.headerCode")}</span>
+            <h1 className={roomStageTitle}>{roomName}</h1>
             <p
-              className={`room-stage-status${connected ? " room-stage-status--live" : ""}`}
+              className={cn(roomStageStatus, connected && roomStageStatusLive)}
               role="status"
             >
-              <span className="room-stage-status-dot" aria-hidden="true" />
+              <span className={roomStageStatusDot} aria-hidden="true" />
               {connected ? t("room.realtime") : t("room.reconnecting")}
             </p>
           </div>
         </div>
 
-        <div className="room-stage-header-actions">
+        <div className={roomStageHeaderActions}>
           <Button
             type="button"
             variant="secondary"
             size="sm"
-            className="room-stage-rail-toggle lg:hidden"
+            className={roomStageRailToggle}
             aria-expanded={mobileRailOpen}
             aria-controls="room-stage-rail"
             onClick={onMobileRailToggle}
@@ -84,7 +110,7 @@ export function RoomStageShell({
             <Button
               variant="secondary"
               size="sm"
-              className="room-stage-action-btn"
+              className={roomStageActionBtn}
               onClick={onCloseRoom}
               disabled={closeRoomPending}
             >
@@ -94,7 +120,7 @@ export function RoomStageShell({
           <Button
             variant="danger"
             size="sm"
-            className="room-stage-action-btn"
+            className={roomStageActionBtn}
             onClick={onLeave}
             disabled={leavePending}
           >
@@ -103,18 +129,18 @@ export function RoomStageShell({
         </div>
       </header>
 
-      <div className="room-stage-body">
-        <div className="room-stage-workspace">
-          <div className="room-stage-main">
-            <div className="room-stage-main-fill">{main}</div>
+      <div className={roomStageBody}>
+        <div className={roomStageWorkspace}>
+          <div className={roomStageMain}>
+            <div className={roomStageMainFill}>{main}</div>
           </div>
           <aside
             id="room-stage-rail"
-            className={`room-stage-rail${mobileRailOpen ? " room-stage-rail--open" : ""}`}
+            className={roomStageRail(mobileRailOpen)}
             aria-label={t("room.sidebarAria")}
           >
-            <div className="room-stage-rail-handle lg:hidden" aria-hidden="true" />
-            <div className="room-stage-rail-tabs" role="tablist">
+            <div className={roomStageRailHandle} aria-hidden="true" />
+            <div className={roomStageRailTabs} role="tablist">
               <SidePanelTab active={side === "chat"} onClick={() => onSideChange("chat")}>
                 <MessageSquare className="size-4" aria-hidden="true" />
                 {t("room.chatTab")}
@@ -124,14 +150,14 @@ export function RoomStageShell({
                 {t("room.peopleTab")}
               </SidePanelTab>
             </div>
-            <div className="room-stage-rail-panel">{rail}</div>
+            <div className={roomStageRailPanel}>{rail}</div>
           </aside>
         </div>
 
         {mobileRailOpen ? (
           <button
             type="button"
-            className="room-stage-backdrop lg:hidden"
+            className={roomStageBackdrop}
             aria-label={t("room.closePanel")}
             onClick={onMobileRailClose}
           />

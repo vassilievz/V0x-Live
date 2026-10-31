@@ -1,0 +1,10 @@
+﻿@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .auth-art-card { transition: border-color 0.01ms; }
+  .auth-art-card[data-hover] { box-shadow: 0 1px 0 rgb(255 255 255 / 4%) inset; }
+  .home-hero-art-image { animation: none; }
+  .home-hero-art-grain.is-ready { opacity: 1; }
+  .home-highlight-cell { transition: border-color 0.01ms, background-color 0.01ms; }
+  .home-step-cell { transition: border-color 0.01ms, background-color 0.01ms; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
