@@ -40,6 +40,8 @@ export const domainPt = {
     submitCreate: "Criar e entrar",
     connecting: "Conectando…",
     waitingService: "Aguardando o serviço.",
+    sessionFailed:
+      "Não foi possível iniciar sessão de visitante. Verifique se cookies estão liberados e tente de novo.",
     inviteTitle: "Já tem um código?",
     inviteCodeLabel: "Código da sala",
     inviteCodePlaceholder: "Código do convite",

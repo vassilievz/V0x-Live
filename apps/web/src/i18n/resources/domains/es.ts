@@ -42,6 +42,8 @@ export const domainEs = {
     submitCreate: "Crear y entrar",
     connecting: "Conectando…",
     waitingService: "Esperando el servicio.",
+    sessionFailed:
+      "No se pudo iniciar sesión de visitante. Permite cookies en este sitio e inténtalo de nuevo.",
     inviteTitle: "¿Ya tienes un código?",
     inviteCodeLabel: "Código de la sala",
     inviteCodePlaceholder: "Código de invitación",

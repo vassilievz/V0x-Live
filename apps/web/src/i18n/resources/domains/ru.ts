@@ -42,6 +42,8 @@ export const domainRu = {
     submitCreate: "Создать и войти",
     connecting: "Подключение…",
     waitingService: "Ожидание сервиса.",
+    sessionFailed:
+      "Не удалось начать гостевую сессию. Разрешите cookies для сайта и попробуйте снова.",
     inviteTitle: "Уже есть код?",
     inviteCodeLabel: "Код комнаты",
     inviteCodePlaceholder: "Код приглашения",

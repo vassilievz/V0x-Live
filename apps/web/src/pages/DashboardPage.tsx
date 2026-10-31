@@ -8,6 +8,7 @@ import { Button, Input } from "@v0xlive/ui";
 import type { JoinRoomResponse } from "@v0xlive/api-client";
 import { roomsApi, ApiError } from "@/lib/api";
 import { ensureGuestSession } from "@/lib/guestSession";
+import { useEnsureGuestSession } from "@/hooks/useEnsureGuestSession";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
 import { SitePageHead } from "@/components/layout/SitePageHead";
@@ -49,6 +50,16 @@ function sessionDisplayName(name: string, guestLabel: string) {
     : name;
 }
 
+function formatActionError(error: unknown, t: (key: string) => string): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401 || error.body.error === "session_unavailable") {
+      return t("dashboard.sessionFailed");
+    }
+    return error.message;
+  }
+  return t("errors.generic");
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -58,6 +69,7 @@ export function DashboardPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const me = useSessionUser();
+  const { ready, ensuring } = useEnsureGuestSession();
 
   useEffect(() => {
     if (params.get("auth") === "google") {
@@ -74,7 +86,26 @@ export function DashboardPage() {
   });
 
   const createRoom = useMutation({
-    mutationFn: () => roomsApi.create({ name: roomName.trim(), visibility }),
+    mutationFn: async () => {
+      const sessionUser = await ensureGuestSession(queryClient);
+      if (!sessionUser) {
+        throw new ApiError(503, { error: "session_unavailable", message: "" });
+      }
+      const body = { name: roomName.trim(), visibility };
+      try {
+        return await roomsApi.create(body);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          queryClient.removeQueries({ queryKey: ["auth", "me"] });
+          const retrySession = await ensureGuestSession(queryClient);
+          if (!retrySession) {
+            throw err;
+          }
+          return roomsApi.create(body);
+        }
+        throw err;
+      }
+    },
     onSuccess: async (data) => {
       void queryClient.invalidateQueries({ queryKey: ["rooms"] });
       let prejoin: JoinRoomResponse | undefined;
@@ -90,23 +121,39 @@ export function DashboardPage() {
     },
   });
   const joinByCode = useMutation({
-    mutationFn: () => roomsApi.joinByCode(inviteCode.trim()),
+    mutationFn: async () => {
+      const sessionUser = await ensureGuestSession(queryClient);
+      if (!sessionUser) {
+        throw new ApiError(503, { error: "session_unavailable", message: "" });
+      }
+      const code = inviteCode.trim();
+      try {
+        return await roomsApi.joinByCode(code);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          queryClient.removeQueries({ queryKey: ["auth", "me"] });
+          await ensureGuestSession(queryClient);
+          return roomsApi.joinByCode(code);
+        }
+        throw err;
+      }
+    },
     onSuccess: (data) => navigate(`/room/${data.room_id}`),
   });
   const busy = createRoom.isPending || joinByCode.isPending;
-  const ready = me.isSuccess;
+  const sessionReady = ready && !ensuring;
   const error = createRoom.error ?? joinByCode.error;
   const serviceDown = me.isError && !(me.error instanceof ApiError && me.error.status === 401);
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (busy || !ready || !roomName.trim()) return;
+    if (busy || !sessionReady || !roomName.trim()) return;
     createRoom.mutate();
   }
 
   function handleJoin(e: React.FormEvent) {
     e.preventDefault();
-    if (busy || !ready || !inviteCode.trim()) return;
+    if (busy || !sessionReady || !inviteCode.trim()) return;
     joinByCode.mutate();
   }
 
@@ -224,20 +271,20 @@ export function DashboardPage() {
                 </fieldset>
                 {error ? (
                   <p className={fieldError} role="alert">
-                    {error instanceof ApiError ? error.message : t("errors.generic")}
+                    {formatActionError(error, t)}
                   </p>
                 ) : null}
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={busy || !ready || !roomName.trim()}
+                  disabled={busy || !sessionReady || !roomName.trim()}
                 >
                   {createRoom.isPending ? t("dashboard.submitPreparing") : t("dashboard.submitCreate")}
                   <ArrowUpRight size={18} aria-hidden="true" />
                 </Button>
-                {!ready ? (
+                {!sessionReady ? (
                   <p className={fieldHelp} role="status">
-                    {me.isLoading ? t("dashboard.connecting") : t("dashboard.waitingService")}
+                    {ensuring || me.isLoading ? t("dashboard.connecting") : t("dashboard.waitingService")}
                   </p>
                 ) : null}
               </form>
@@ -264,7 +311,7 @@ export function DashboardPage() {
                     <Button
                       type="submit"
                       variant="secondary"
-                      disabled={busy || !ready || !inviteCode.trim()}
+                      disabled={busy || !sessionReady || !inviteCode.trim()}
                     >
                       {joinByCode.isPending ? t("dashboard.joinPending") : t("dashboard.join")}
                     </Button>
@@ -272,7 +319,7 @@ export function DashboardPage() {
                   {joinByCode.error ? (
                     <p className={fieldError} role="alert">
                       {joinByCode.error instanceof ApiError
-                        ? joinByCode.error.message
+                        ? formatActionError(joinByCode.error, t)
                         : t("errors.joinRoom")}
                     </p>
                   ) : null}

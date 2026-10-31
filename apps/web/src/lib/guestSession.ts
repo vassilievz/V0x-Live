@@ -68,10 +68,12 @@ export function ensureGuestSession(queryClient: QueryClient): Promise<AuthUser |
     }
 
     try {
-      const user = await authApi.guest(DEFAULT_GUEST_DISPLAY_NAME);
+      await authApi.guest(DEFAULT_GUEST_DISPLAY_NAME);
+      const user = await authApi.me();
       queryClient.setQueryData(["auth", "me"], user);
       return user;
     } catch {
+      queryClient.removeQueries({ queryKey: ["auth", "me"] });
       return null;
     }
   })().finally(() => {

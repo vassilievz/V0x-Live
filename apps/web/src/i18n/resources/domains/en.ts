@@ -42,6 +42,8 @@ export const domainEn = {
     submitCreate: "Create and join",
     connecting: "Connecting…",
     waitingService: "Waiting for the service.",
+    sessionFailed:
+      "Could not start a guest session. Allow cookies for this site and try again.",
     inviteTitle: "Already have a code?",
     inviteCodeLabel: "Room code",
     inviteCodePlaceholder: "Invite code",
