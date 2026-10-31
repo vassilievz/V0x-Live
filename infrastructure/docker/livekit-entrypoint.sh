@@ -1,16 +1,19 @@
 #!/bin/sh
+# LiveKit on Railway: no inbound UDP — media must use ICE/TCP via a TCP proxy on 7881.
 set -eu
 
-echo "=== V0X LIVEKIT (livekit-server) ==="
+log() { printf '=== V0X LIVEKIT === %s\n' "$*" >&2; }
+yesc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 
 host="${REDISHOST:-}"
 port="${REDISPORT:-6379}"
 user="${REDISUSER:-}"
 pass="${REDIS_PASSWORD:-${REDISPASSWORD:-}}"
 
-# REDIS_URL=redis://default:password@host:6379 (Railway)
-if [ -n "${REDIS_URL:-}" ]; then
-  rest="${REDIS_URL#redis://}"
+redis_url="${REDIS_URL:-${REDIS_PRIVATE_URL:-${REDIS_PUBLIC_URL:-}}}"
+
+if [ -n "$redis_url" ]; then
+  rest="${redis_url#redis://}"
   case "$rest" in
     *@*)
       userpass="${rest%%@*}"
@@ -18,11 +21,17 @@ if [ -n "${REDIS_URL:-}" ]; then
       [ -z "$user" ] && user="${userpass%%:*}"
       [ -z "$pass" ] && pass="${userpass#*:}"
       [ -z "$host" ] && host="${hostport%%:*}"
-      [ -z "$port" ] || [ "$port" = "6379" ] && port="${hostport#*:}"
+      if [ -z "$port" ] || [ "$port" = "6379" ]; then
+        hp="${hostport#*:}"
+        [ -n "$hp" ] && port="$hp"
+      fi
       ;;
     *)
       [ -z "$host" ] && host="${rest%%:*}"
-      [ -z "$port" ] || [ "$port" = "6379" ] && port="${rest#*:}"
+      if [ -z "$port" ] || [ "$port" = "6379" ]; then
+        hp="${rest#*:}"
+        [ -n "$hp" ] && port="$hp"
+      fi
       ;;
   esac
 fi
@@ -31,33 +40,94 @@ fi
 [ -z "$port" ] && port=6379
 
 if [ -z "$host" ]; then
-  echo "Defina REDIS_URL (referência ao plugin Redis) ou REDISHOST." >&2
+  log "Redis não configurado. No serviço LiveKit: REDIS_URL = Reference → plugin Redis."
   exit 1
 fi
 
 if [ -z "$pass" ]; then
-  echo "Redis exige password (NOAUTH). Use REDIS_URL completo ou REDIS_PASSWORD do plugin." >&2
+  log "Redis exige password (REDIS_URL completo ou REDIS_PASSWORD)."
   exit 1
 fi
 
 listen="${PORT:-7880}"
+CONFIG="/tmp/livekit.yaml"
 
-# Evitar que caracteres especiais na password quebrem o YAML (Railway usa alfanumérico)
-cat > /tmp/livekit.yaml <<EOF
-port: ${listen}
-rtc:
-  tcp_port: 7881
-  port_range_start: 50000
-  port_range_end: 60000
-  use_external_ip: true
-redis:
-  address: ${host}:${port}
-  username: ${user}
-  password: "${pass}"
-logging:
-  level: info
-EOF
+ICE_TCP_PORT=""
+NODE_IP=""
+BRIDGE_FROM=""
 
-echo "livekit redis target: ${user}@${host}:${port}"
+if [ -n "${RAILWAY_TCP_PROXY_DOMAIN:-}" ] && [ -n "${RAILWAY_TCP_PROXY_PORT:-}" ]; then
+  ICE_TCP_PORT="$RAILWAY_TCP_PROXY_PORT"
+  NODE_IP="${LIVEKIT_NODE_IP:-}"
+  if [ -z "$NODE_IP" ]; then
+    NODE_IP=$(dig +short +timeout=3 A "$RAILWAY_TCP_PROXY_DOMAIN" 2>/dev/null \
+      | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+  fi
+  if [ -z "$NODE_IP" ]; then
+    NODE_IP=$(getent ahostsv4 "$RAILWAY_TCP_PROXY_DOMAIN" 2>/dev/null | awk 'NR==1 {print $1}')
+  fi
+  if [ -z "$NODE_IP" ]; then
+    log "FATAL: não resolveu $RAILWAY_TCP_PROXY_DOMAIN — defina LIVEKIT_NODE_IP."
+    exit 1
+  fi
+  BRIDGE_FROM="${RAILWAY_TCP_APPLICATION_PORT:-7881}"
+  log "ICE/TCP: ${NODE_IP}:${ICE_TCP_PORT} (${RAILWAY_TCP_PROXY_DOMAIN})"
+else
+  log "AVISO: sem TCP proxy Railway na porta 7881 — WebRTC UDP falha aqui; crie o proxy e redeploy."
+fi
 
-exec /livekit-server --config /tmp/livekit.yaml
+if [ -n "$ICE_TCP_PORT" ]; then
+  RTC_BLOCK=$(printf '%s\n' \
+    "  tcp_port: ${ICE_TCP_PORT}" \
+    "  force_tcp: true" \
+    "  use_external_ip: false" \
+    "  node_ip: \"$(yesc "$NODE_IP")\"")
+else
+  RTC_BLOCK=$(printf '%s\n' \
+    "  tcp_port: 7881" \
+    "  port_range_start: 50000" \
+    "  port_range_end: 60000" \
+    "  use_external_ip: true")
+fi
+
+KEYS_BLOCK=""
+if [ -n "${LIVEKIT_API_KEY:-}" ] && [ -n "${LIVEKIT_API_SECRET:-}" ]; then
+  KEYS_BLOCK="keys:
+  \"$(yesc "$LIVEKIT_API_KEY")\": \"$(yesc "$LIVEKIT_API_SECRET")\""
+fi
+
+{
+  echo "port: ${listen}"
+  [ -n "$KEYS_BLOCK" ] && echo "$KEYS_BLOCK"
+  echo "rtc:"
+  echo "$RTC_BLOCK"
+  echo "redis:"
+  echo "  address: ${host}:${port}"
+  echo "  username: \"$(yesc "$user")\""
+  echo "  password: \"$(yesc "$pass")\""
+  echo "logging:"
+  echo "  level: ${LIVEKIT_LOG_LEVEL:-info}"
+} > "$CONFIG"
+
+log "redis target: ${user}@${host}:${port}"
+
+if [ -n "$BRIDGE_FROM" ] && [ "$BRIDGE_FROM" != "$ICE_TCP_PORT" ]; then
+  BRIDGE_TO="${LIVEKIT_BRIDGE_TARGET_IP:-}"
+  if [ -z "$BRIDGE_TO" ]; then
+    BRIDGE_TO=$(ip -4 -o addr show scope global 2>/dev/null \
+      | awk '{print $4}' | cut -d/ -f1 | head -n 1)
+  fi
+  if [ -z "$BRIDGE_TO" ]; then
+    BRIDGE_TO=$(hostname -i 2>/dev/null | tr ' ' '\n' \
+      | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | grep -v '^127\.' | head -n 1)
+  fi
+  if [ -z "$BRIDGE_TO" ]; then
+    log "FATAL: IP do container para bridge ICE/TCP — defina LIVEKIT_BRIDGE_TARGET_IP."
+    exit 1
+  fi
+  log "bridge :${BRIDGE_FROM} -> ${BRIDGE_TO}:${ICE_TCP_PORT}"
+  socat TCP-LISTEN:"$BRIDGE_FROM",fork,reuseaddr \
+    TCP:"$BRIDGE_TO":"$ICE_TCP_PORT",retry=5,interval=1 &
+fi
+
+exec tini -s -- /livekit-server --config "$CONFIG"

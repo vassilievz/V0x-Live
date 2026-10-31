@@ -1,4 +1,12 @@
 FROM livekit/livekit-server:latest
+
+RUN apk add --no-cache socat tini bind-tools ca-certificates iproute2
+
 COPY infrastructure/docker/livekit-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+ENV TINI_SUBREAPER=1 \
+    TINI_KILL_PROCESS_GROUP=1
+
+EXPOSE 7880 7881
 ENTRYPOINT ["/entrypoint.sh"]
