@@ -43,6 +43,7 @@ func New(cfg config.Config, store *database.Store) *Server {
 	chatHandler := chat.NewHandler(store, roomSvc, hub)
 	musicHandler := music.NewHandler(store, roomSvc, hub)
 	cineCatalogSvc := cine.NewCatalogService()
+	cineCatalogSvc.StartBackgroundWarmup()
 	cineHandler := cine.NewHandler(store, roomSvc, hub, cineCatalogSvc)
 	cineCatalogHandler := cine.NewCatalogHandler(cineCatalogSvc)
 	cineCatalogLimiter := apimw.NewRateLimiter(3, 8, cfg.TrustProxy, cfg.RateLimitMaxIPs, cfg.RateLimitVisitorTTL)

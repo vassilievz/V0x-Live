@@ -43,6 +43,22 @@ func NewCatalogService() *CatalogService {
 	return svc
 }
 
+// StartBackgroundWarmup loads RedeFlix inventory and default catalog slices after startup.
+func (s *CatalogService) StartBackgroundWarmup() {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), redeflixInventoryTimeout+15*time.Second)
+		defer cancel()
+		if _, err := s.inventory.get(ctx); err != nil {
+			return
+		}
+		for _, cat := range []string{ContentFilme, ContentSerie, ContentAnime, ContentDorama} {
+			warmCtx, warmCancel := context.WithTimeout(context.Background(), catalogHTTPTimeout+5*time.Second)
+			_, _ = s.ListCatalog(warmCtx, cat, "")
+			warmCancel()
+		}
+	}()
+}
+
 const catalogHTTPTimeout = 12 * time.Second
 
 func (s *CatalogService) ListCatalog(ctx context.Context, category, search string) (CatalogResponse, error) {
@@ -145,11 +161,11 @@ func (s *CatalogService) searchMovies(ctx context.Context, inv *redeflixInventor
 func (s *CatalogService) movieItemsFromCinemetaTop(ctx context.Context, inv *redeflixInventory, limit int) ([]CatalogItemDTO, error) {
 	body, err := s.fetchGET(ctx, cinemetaMovieTop)
 	if err != nil {
-		return nil, err
+		return s.movieItemsFromInventory(inv, limit), nil
 	}
 	var payload cinemetaCatalogPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, err
+		return s.movieItemsFromInventory(inv, limit), nil
 	}
 	items := make([]CatalogItemDTO, 0, limit)
 	for _, m := range payload.Metas {
@@ -165,7 +181,11 @@ func (s *CatalogService) movieItemsFromCinemetaTop(ctx context.Context, inv *red
 	if len(items) > 0 {
 		return items, nil
 	}
-	// Fallback: recent TMDB ids from RedeFlix list (title only).
+	return s.movieItemsFromInventory(inv, limit), nil
+}
+
+func (s *CatalogService) movieItemsFromInventory(inv *redeflixInventory, limit int) []CatalogItemDTO {
+	items := make([]CatalogItemDTO, 0, limit)
 	for i, id := range inv.movies {
 		if i >= limit {
 			break
@@ -176,7 +196,7 @@ func (s *CatalogService) movieItemsFromCinemetaTop(ctx context.Context, inv *red
 			Type:    ContentFilme,
 		})
 	}
-	return items, nil
+	return items
 }
 
 func (s *CatalogService) cinemetaMetaToMovieItem(ctx context.Context, inv *redeflixInventory, m cinemetaMeta) (CatalogItemDTO, bool) {

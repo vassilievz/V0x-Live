@@ -220,6 +220,7 @@ export const domainEs = {
     catalogLoading: "Cargando catálogo…",
     catalogLoadingMeta: "Cargando temporadas y episodios…",
     catalogLoadError: "No se pudo cargar el catálogo. Inténtalo de nuevo.",
+    catalogRetry: "Intentar de nuevo",
     catalogEmpty: "Sin resultados. Prueba otro nombre o filtro.",
     catalogBackToGrid: "Volver al catálogo",
     catalogPickEpisode: "Elige temporada y episodio para transmitir.",

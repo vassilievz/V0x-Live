@@ -225,6 +225,7 @@ export const domainPt = {
     catalogLoading: "Carregando catálogo…",
     catalogLoadingMeta: "Carregando temporadas e episódios…",
     catalogLoadError: "Não foi possível carregar o catálogo. Tente de novo.",
+    catalogRetry: "Tentar novamente",
     catalogEmpty: "Nenhum resultado. Tente outro nome ou filtro.",
     catalogBackToGrid: "Voltar ao catálogo",
     catalogPickEpisode: "Escolha a temporada e o episódio para transmitir.",

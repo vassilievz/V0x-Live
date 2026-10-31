@@ -16,6 +16,16 @@ import {
 
 const TMDB_NUMERIC_ID = /^[0-9]+$/;
 const DEBOUNCE_MS = 400;
+const CATALOG_RETRY_MS = 1000;
+
+async function fetchCineCatalog(params: { category: string; search?: string }) {
+  try {
+    return await cineApi.catalog(params);
+  } catch {
+    await new Promise((resolve) => window.setTimeout(resolve, CATALOG_RETRY_MS));
+    return cineApi.catalog(params);
+  }
+}
 
 type CategoryFilter = "filme" | "serie" | "anime" | "dorama";
 
@@ -270,11 +280,12 @@ export function CineCatalogPanel({ pending, error, onStartCatalog }: Props) {
   const catalogQuery = useQuery({
     queryKey: ["cine-catalog", filter, debouncedSearch],
     queryFn: () =>
-      cineApi.catalog({
+      fetchCineCatalog({
         category: catalogCategoryParam(filter),
         search: debouncedSearch || undefined,
       }),
     staleTime: 60_000,
+    retry: false,
   });
 
   const metaQuery = useQuery({
@@ -416,7 +427,12 @@ export function CineCatalogPanel({ pending, error, onStartCatalog }: Props) {
           </div>
         ) : null}
         {catalogQuery.isError ? (
-          <p className={noticeError}>{t("cine.catalogLoadError")}</p>
+          <div className="flex flex-col items-start gap-3">
+            <p className={noticeError}>{t("cine.catalogLoadError")}</p>
+            <Button type="button" variant="secondary" size="sm" onClick={() => void catalogQuery.refetch()}>
+              {t("cine.catalogRetry")}
+            </Button>
+          </div>
         ) : items.length === 0 && !catalogQuery.isFetching ? (
           <p className={notice}>{t("cine.catalogEmpty")}</p>
         ) : (

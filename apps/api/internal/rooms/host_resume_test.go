@@ -38,7 +38,7 @@ func TestIntegrationPrivateHostCanResumeAfterStaleMark(t *testing.T) {
 		t.Fatalf("RoomEntryFlags = (%v,%v) want true,true", canResume, isHost)
 	}
 
-	part, ok, err := svc.resumePrivateRoomHost(context.Background(), room, host, JoinInput{})
+	part, ok, err := svc.resumeRoomHost(context.Background(), room, host, JoinInput{})
 	if err != nil || !ok {
 		t.Fatalf("resumePrivateRoomHost: ok=%v err=%v", ok, err)
 	}

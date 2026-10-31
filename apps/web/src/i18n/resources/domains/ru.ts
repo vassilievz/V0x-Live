@@ -220,6 +220,7 @@ export const domainRu = {
     catalogLoading: "Загрузка каталога…",
     catalogLoadingMeta: "Загрузка сезонов и серий…",
     catalogLoadError: "Не удалось загрузить каталог. Попробуйте снова.",
+    catalogRetry: "Повторить",
     catalogEmpty: "Ничего не найдено. Попробуйте другой запрос.",
     catalogBackToGrid: "Назад к каталогу",
     catalogPickEpisode: "Выберите сезон и серию для трансляции.",

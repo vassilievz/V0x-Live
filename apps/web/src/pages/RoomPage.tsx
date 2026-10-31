@@ -128,7 +128,7 @@ export function RoomPage() {
     retry: 2,
   });
 
-  const { connected, lastEvent } = useRoomSocket(roomId, joined || join.isPending);
+  const { connected, lastEvent } = useRoomSocket(roomId, joined);
 
   const leave = useMutation({
     mutationFn: async () => {

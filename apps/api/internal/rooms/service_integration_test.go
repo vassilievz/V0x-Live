@@ -227,3 +227,42 @@ func TestIntegrationCanDirectJoinPolicyMatchesJoin(t *testing.T) {
 		t.Fatal("policy should allow public direct join")
 	}
 }
+
+func TestIntegrationPublicRoomOwnerResumesHostWithNewSession(t *testing.T) {
+	_, svc, sessions := setupIntegration(t)
+	host := guestSession(t, sessions, "Host")
+	if host.UserID == nil {
+		t.Fatal("expected guest user id")
+	}
+	room, err := svc.Create(context.Background(), host, CreateInput{
+		Name:            "Pública owner",
+		Visibility:      models.VisibilityPublic,
+		MaxParticipants: 10,
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	now := time.Now().UTC()
+	_, err = svc.participants.UpdateMany(context.Background(), bson.M{
+		"room_id": room.ID,
+		"role":    models.RoleHost,
+	}, bson.M{"$set": bson.M{"left_at": now}})
+	if err != nil {
+		t.Fatalf("mark host left: %v", err)
+	}
+
+	_, resumedSession, err := sessions.CreateGuest(context.Background(), "Host return")
+	if err != nil {
+		t.Fatalf("CreateGuest: %v", err)
+	}
+	resumedSession.UserID = host.UserID
+
+	part, err := svc.Join(context.Background(), room.ID, resumedSession, JoinInput{})
+	if err != nil {
+		t.Fatalf("Join owner resume: %v", err)
+	}
+	if part.Role != models.RoleHost {
+		t.Fatalf("role = %q want host", part.Role)
+	}
+}

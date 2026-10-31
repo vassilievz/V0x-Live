@@ -55,6 +55,13 @@ export function ensureGuestSession(queryClient: QueryClient): Promise<AuthUser |
       if (fromCookie && fromCookie !== "unauthorized") {
         return fromCookie;
       }
+      if (fromCookie === "unauthorized") {
+        await new Promise((resolve) => window.setTimeout(resolve, 400));
+        const retry = await refreshSessionFromCookie(queryClient);
+        if (retry && retry !== "unauthorized") {
+          return retry;
+        }
+      }
       if (fromCookie === null) {
         return cached ?? null;
       }

@@ -220,6 +220,7 @@ export const domainEn = {
     catalogLoading: "Loading catalog…",
     catalogLoadingMeta: "Loading seasons and episodes…",
     catalogLoadError: "Could not load the catalog. Try again.",
+    catalogRetry: "Try again",
     catalogEmpty: "No results. Try another name or filter.",
     catalogBackToGrid: "Back to catalog",
     catalogPickEpisode: "Pick a season and episode to stream.",

@@ -36,12 +36,13 @@ func (s *Service) RoomEntryFlags(ctx context.Context, room models.Room, sess ses
 	return false, false
 }
 
-func (s *Service) resumePrivateRoomHost(ctx context.Context, room models.Room, sess session.Session, in JoinInput) (models.RoomParticipant, bool, error) {
-	if CanDirectJoin(room) {
-		return models.RoomParticipant{}, false, nil
-	}
-	if err := s.checkRoomPassword(room, in.Password); err != nil {
-		return models.RoomParticipant{}, true, err
+// resumeRoomHost re-binds the host participant when the owner returns with a new session
+// (public or private). Private rooms still require the room password when set.
+func (s *Service) resumeRoomHost(ctx context.Context, room models.Room, sess session.Session, in JoinInput) (models.RoomParticipant, bool, error) {
+	if !CanDirectJoin(room) {
+		if err := s.checkRoomPassword(room, in.Password); err != nil {
+			return models.RoomParticipant{}, true, err
+		}
 	}
 
 	if room.OwnerID != nil && sess.UserID != nil && *room.OwnerID == *sess.UserID {

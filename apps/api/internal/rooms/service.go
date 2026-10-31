@@ -297,7 +297,7 @@ func (s *Service) Join(ctx context.Context, roomID primitive.ObjectID, sess sess
 		return models.RoomParticipant{}, findErr
 	}
 
-	if part, ok, err := s.resumePrivateRoomHost(ctx, room, sess, in); ok {
+	if part, ok, err := s.resumeRoomHost(ctx, room, sess, in); ok {
 		return part, err
 	}
 

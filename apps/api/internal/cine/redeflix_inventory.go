@@ -75,6 +75,7 @@ func (c *redeflixInventoryCache) get(ctx context.Context) (*redeflixInventory, e
 		c.mu.RUnlock()
 		return inv, nil
 	}
+	stale := c.inv
 	c.mu.RUnlock()
 
 	c.mu.Lock()
@@ -84,6 +85,9 @@ func (c *redeflixInventoryCache) get(ctx context.Context) (*redeflixInventory, e
 	}
 	inv, err := c.load(ctx)
 	if err != nil {
+		if stale != nil {
+			return stale, nil
+		}
 		return nil, err
 	}
 	c.inv = inv
