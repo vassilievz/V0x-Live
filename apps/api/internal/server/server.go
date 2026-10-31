@@ -37,6 +37,7 @@ func New(cfg config.Config, store *database.Store) *Server {
 	sessions := session.NewManager(store, cfg.SessionCookieName, cfg.SessionCookieDomain, cfg.SessionMaxAge, cfg.SecureCookies())
 	hub := realtime.NewHub()
 	roomSvc := rooms.NewService(store)
+	roomSvc.StartEmptyRoomJanitor(context.Background())
 
 	authHandler := auth.NewHandler(sessions, roomSvc, auth.NewUserRepository(store.Collection("users")), cfg)
 	roomHandler := rooms.NewHandler(roomSvc, hub, cfg)
@@ -60,7 +61,6 @@ func New(cfg config.Config, store *database.Store) *Server {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(apimw.SecurityHeaders(cfg.SecureCookies()))
-	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(limiter.Middleware)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.CORSAllowedOrigins,
@@ -74,28 +74,34 @@ func New(cfg config.Config, store *database.Store) *Server {
 	r.Get("/ready", healthHandler.Ready)
 
 	r.Route("/api/v1", func(api chi.Router) {
-		api.Route("/auth", func(ar chi.Router) {
-			authHandler.RegisterRoutes(ar, guestLimiter.Middleware)
-		})
-		api.Get("/stats/online", presenceHandler.OnlineCount)
-		api.With(auth.RequireSession(sessions)).Post("/presence/heartbeat", presenceHandler.Heartbeat)
+		// WebSocket must not use chi Timeout (hijacked connection).
 		api.With(auth.RequireSession(sessions)).Get("/realtime/ws", realtimeHandler.ServeWS)
 
-		api.Route("/cine", func(cr chi.Router) {
-			cr.Use(auth.RequireSession(sessions))
-			cr.Use(cineCatalogLimiter.Middleware)
-			cineCatalogHandler.RegisterRoutes(cr)
-		})
+		api.Group(func(api chi.Router) {
+			api.Use(middleware.Timeout(120 * time.Second))
 
-		api.Route("/rooms", func(rr chi.Router) {
-			roomHandler.RegisterPublic(rr)
-			rr.Group(func(pr chi.Router) {
-				pr.Use(auth.RequireSession(sessions))
-				roomHandler.RegisterProtected(pr)
-				chatHandler.RegisterRoutes(pr)
-				musicHandler.RegisterRoutes(pr)
-				cineHandler.RegisterRoutes(pr)
-				streamHandler.RegisterRoutes(pr)
+			api.Route("/auth", func(ar chi.Router) {
+				authHandler.RegisterRoutes(ar, guestLimiter.Middleware)
+			})
+			api.Get("/stats/online", presenceHandler.OnlineCount)
+			api.With(auth.RequireSession(sessions)).Post("/presence/heartbeat", presenceHandler.Heartbeat)
+
+			api.Route("/cine", func(cr chi.Router) {
+				cr.Use(auth.RequireSession(sessions))
+				cr.Use(cineCatalogLimiter.Middleware)
+				cineCatalogHandler.RegisterRoutes(cr)
+			})
+
+			api.Route("/rooms", func(rr chi.Router) {
+				roomHandler.RegisterPublic(rr)
+				rr.Group(func(pr chi.Router) {
+					pr.Use(auth.RequireSession(sessions))
+					roomHandler.RegisterProtected(pr)
+					chatHandler.RegisterRoutes(pr)
+					musicHandler.RegisterRoutes(pr)
+					cineHandler.RegisterRoutes(pr)
+					streamHandler.RegisterRoutes(pr)
+				})
 			})
 		})
 	})
@@ -103,9 +109,9 @@ func New(cfg config.Config, store *database.Store) *Server {
 	s := &http.Server{
 		Addr:         cfg.HTTPAddr,
 		Handler:      r,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 0,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	return &Server{cfg: cfg, store: store, http: s}

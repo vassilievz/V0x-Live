@@ -99,7 +99,6 @@ func (s *Service) ListPublic(ctx context.Context) ([]PublicRoomItem, error) {
 			return nil, err
 		}
 		if count == 0 {
-			_, _ = s.tryDeleteRoomIfEmpty(ctx, room.ID)
 			continue
 		}
 		hasPreview := previewFresh(room.PreviewUpdatedAt, room.PreviewJPEG)
