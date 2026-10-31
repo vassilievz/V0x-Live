@@ -46,6 +46,7 @@ type Props = {
   leavePending: boolean;
   onCloseRoom?: () => void;
   closeRoomPending?: boolean;
+  hostShare?: ReactNode;
   main: ReactNode;
   rail: ReactNode;
 };
@@ -63,6 +64,7 @@ export function RoomStageShell({
   leavePending,
   onCloseRoom,
   closeRoomPending,
+  hostShare,
   main,
   rail,
 }: Props) {
@@ -128,6 +130,8 @@ export function RoomStageShell({
           </Button>
         </div>
       </header>
+
+      {hostShare}
 
       <div className={roomStageBody}>
         <div className={roomStageWorkspace}>

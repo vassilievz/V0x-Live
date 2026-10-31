@@ -22,6 +22,7 @@ import {
   ParticipantsPanel,
 } from "@/features/participants/components/ParticipantsPanel";
 import { RoomStageShell } from "@/features/rooms/components/RoomStageShell";
+import { RoomHostShareBar } from "@/features/rooms/components/RoomHostShareBar";
 import {
   mayAutoJoinFromEntry,
   needsRoomInviteGate,
@@ -142,6 +143,13 @@ export function RoomPage() {
     queryFn: () => roomsApi.livekitToken(roomId!),
     enabled: !!roomId && joined,
     retry: 2,
+  });
+
+  const hostRoomDetails = useQuery({
+    queryKey: ["room", roomId, "host-details"],
+    queryFn: () => roomsApi.get(roomId!),
+    enabled: !!roomId && joined && role === "host",
+    staleTime: 60_000,
   });
 
   const { connected, lastEvent } = useRoomSocket(roomId, joined);
@@ -273,6 +281,15 @@ export function RoomPage() {
       leavePending={leave.isPending}
       onCloseRoom={role === "host" ? () => closeRoom.mutate() : undefined}
       closeRoomPending={closeRoom.isPending}
+      hostShare={
+        role === "host" ? (
+          <RoomHostShareBar
+            roomId={roomId}
+            visibility={hostRoomDetails.data?.visibility ?? preview.data?.visibility ?? "public"}
+            inviteCode={hostRoomDetails.data?.invite_code}
+          />
+        ) : null
+      }
       main={
         <>
           {join.isError && join.error instanceof ApiError ? (

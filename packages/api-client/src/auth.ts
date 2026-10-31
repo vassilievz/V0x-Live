@@ -221,7 +221,7 @@ export function createRoomsApi(client: Client) {
         name: string;
         description?: string;
         visibility: string;
-        invite_code: string;
+        invite_code?: string;
         password_required?: boolean;
       }>(`/api/v1/rooms/${id}`),
     entry: (id: string) =>
