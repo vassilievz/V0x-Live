@@ -1,27 +1,48 @@
 #!/bin/sh
 set -eu
 
-echo "=== V0X LIVEKIT (livekit-server) — se vês nginx, o Dockerfile path está errado no serviço Railway ==="
+echo "=== V0X LIVEKIT (livekit-server) ==="
 
 host="${REDISHOST:-}"
 port="${REDISPORT:-6379}"
-user="${REDISUSER:-default}"
+user="${REDISUSER:-}"
 pass="${REDIS_PASSWORD:-${REDISPASSWORD:-}}"
 
-if [ -z "$host" ] && [ -n "${REDIS_URL:-}" ]; then
-  # redis://user:pass@host:port
-  host="$(printf '%s' "$REDIS_URL" | sed -n 's|^redis://[^@]*@\([^:/]*\).*|\1|p')"
-  port="$(printf '%s' "$REDIS_URL" | sed -n 's|^redis://[^@]*@[^:]*:\([0-9]*\).*|\1|p')"
-  [ -z "$port" ] && port=6379
+# REDIS_URL=redis://default:password@host:6379 (Railway)
+if [ -n "${REDIS_URL:-}" ]; then
+  rest="${REDIS_URL#redis://}"
+  case "$rest" in
+    *@*)
+      userpass="${rest%%@*}"
+      hostport="${rest#*@}"
+      [ -z "$user" ] && user="${userpass%%:*}"
+      [ -z "$pass" ] && pass="${userpass#*:}"
+      [ -z "$host" ] && host="${hostport%%:*}"
+      [ -z "$port" ] || [ "$port" = "6379" ] && port="${hostport#*:}"
+      ;;
+    *)
+      [ -z "$host" ] && host="${rest%%:*}"
+      [ -z "$port" ] || [ "$port" = "6379" ] && port="${rest#*:}"
+      ;;
+  esac
 fi
 
+[ -z "$user" ] && user="default"
+[ -z "$port" ] && port=6379
+
 if [ -z "$host" ]; then
-  echo "Defina REDIS_URL ou REDISHOST (referência ao plugin Redis na Railway)." >&2
+  echo "Defina REDIS_URL (referência ao plugin Redis) ou REDISHOST." >&2
+  exit 1
+fi
+
+if [ -z "$pass" ]; then
+  echo "Redis exige password (NOAUTH). Use REDIS_URL completo ou REDIS_PASSWORD do plugin." >&2
   exit 1
 fi
 
 listen="${PORT:-7880}"
 
+# Evitar que caracteres especiais na password quebrem o YAML (Railway usa alfanumérico)
 cat > /tmp/livekit.yaml <<EOF
 port: ${listen}
 rtc:
@@ -32,10 +53,11 @@ rtc:
 redis:
   address: ${host}:${port}
   username: ${user}
-  password: ${pass}
+  password: "${pass}"
 logging:
   level: info
 EOF
 
-# Binário na imagem oficial: /livekit-server (ver Dockerfile upstream LiveKit)
+echo "livekit redis target: ${user}@${host}:${port}"
+
 exec /livekit-server --config /tmp/livekit.yaml
