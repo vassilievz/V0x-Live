@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, MessageSquare, Users } from "lucide-react";
 import { Button } from "@v0xlive/ui";
+import { RoomHostHeaderShare } from "@/features/rooms/components/RoomHostHeaderShare";
 import { SidePanelTab } from "@/features/participants/components/ParticipantsPanel";
 import { cn } from "@/lib/cn";
 import {
@@ -46,7 +47,9 @@ type Props = {
   leavePending: boolean;
   onCloseRoom?: () => void;
   closeRoomPending?: boolean;
-  hostShare?: ReactNode;
+  hostShareRoomId?: string;
+  hostInviteCode?: string;
+  hostRoomPrivate?: boolean;
   main: ReactNode;
   rail: ReactNode;
 };
@@ -64,7 +67,9 @@ export function RoomStageShell({
   leavePending,
   onCloseRoom,
   closeRoomPending,
-  hostShare,
+  hostShareRoomId,
+  hostInviteCode,
+  hostRoomPrivate,
   main,
   rail,
 }: Props) {
@@ -108,6 +113,14 @@ export function RoomStageShell({
             {t("room.openPanelShort")}
           </Button>
 
+          {role === "host" && hostShareRoomId ? (
+            <RoomHostHeaderShare
+              roomId={hostShareRoomId}
+              inviteCode={hostInviteCode}
+              isPrivate={hostRoomPrivate ?? false}
+            />
+          ) : null}
+
           {role === "host" && onCloseRoom ? (
             <Button
               variant="secondary"
@@ -130,8 +143,6 @@ export function RoomStageShell({
           </Button>
         </div>
       </header>
-
-      {hostShare}
 
       <div className={roomStageBody}>
         <div className={roomStageWorkspace}>
