@@ -5,6 +5,27 @@ set -eu
 log() { printf '=== V0X LIVEKIT === %s\n' "$*" >&2; }
 yesc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 
+wait_for_tcp_listen() {
+  _port="$1"
+  _attempt=0
+  while [ "$_attempt" -lt 40 ]; do
+    if ss -ltn 2>/dev/null | grep -q ":${_port} "; then
+      return 0
+    fi
+    _attempt=$((_attempt + 1))
+    sleep 0.25
+  done
+  return 1
+}
+
+apply_railway_rtc_env() {
+  # LiveKit merges LIVEKIT_* env over the YAML file; Railway may set tcp_port to 7881.
+  export LIVEKIT_RTC_TCP_PORT="$ICE_TCP_PORT"
+  export LIVEKIT_RTC_FORCE_TCP="true"
+  export LIVEKIT_RTC_USE_EXTERNAL_IP="false"
+  export LIVEKIT_RTC_NODE_IP="$NODE_IP"
+}
+
 host="${REDISHOST:-}"
 port="${REDISPORT:-6379}"
 user="${REDISUSER:-}"
@@ -101,6 +122,8 @@ fi
   [ -n "$KEYS_BLOCK" ] && echo "$KEYS_BLOCK"
   echo "rtc:"
   echo "$RTC_BLOCK"
+  echo "turn:"
+  echo "  enabled: false"
   echo "redis:"
   echo "  address: ${host}:${port}"
   echo "  username: \"$(yesc "$user")\""
@@ -110,6 +133,11 @@ fi
 } > "$CONFIG"
 
 log "redis target: ${user}@${host}:${port}"
+
+if [ -n "$ICE_TCP_PORT" ]; then
+  apply_railway_rtc_env
+  log "LIVEKIT_RTC_TCP_PORT=${LIVEKIT_RTC_TCP_PORT} (proxy público; container :${BRIDGE_FROM:-7881} via socat)"
+fi
 
 if [ -n "$BRIDGE_FROM" ] && [ "$BRIDGE_FROM" != "$ICE_TCP_PORT" ]; then
   BRIDGE_TO="${LIVEKIT_BRIDGE_TARGET_IP:-}"
@@ -125,9 +153,22 @@ if [ -n "$BRIDGE_FROM" ] && [ "$BRIDGE_FROM" != "$ICE_TCP_PORT" ]; then
     log "FATAL: IP do container para bridge ICE/TCP — defina LIVEKIT_BRIDGE_TARGET_IP."
     exit 1
   fi
+
+  # LiveKit must bind the public proxy port first; socat owns :7881 for Railway ingress.
+  /livekit-server --config "$CONFIG" &
+  LKPID=$!
+  if ! wait_for_tcp_listen "$ICE_TCP_PORT"; then
+    log "FATAL: LiveKit não abriu TCP :${ICE_TCP_PORT}. Verifique LIVEKIT_RTC_TCP_PORT no serviço (deve ser ${ICE_TCP_PORT}, não ${BRIDGE_FROM})."
+    kill "$LKPID" 2>/dev/null || true
+    wait "$LKPID" 2>/dev/null || true
+    exit 1
+  fi
+
   log "bridge :${BRIDGE_FROM} -> ${BRIDGE_TO}:${ICE_TCP_PORT}"
   socat TCP-LISTEN:"$BRIDGE_FROM",fork,reuseaddr \
     TCP:"$BRIDGE_TO":"$ICE_TCP_PORT",retry=5,interval=1 &
+
+  exec tini -s -- sh -c "wait $LKPID"
 fi
 
 exec tini -s -- /livekit-server --config "$CONFIG"
