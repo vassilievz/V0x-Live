@@ -266,3 +266,29 @@ func TestIntegrationPublicRoomOwnerResumesHostWithNewSession(t *testing.T) {
 		t.Fatalf("role = %q want host", part.Role)
 	}
 }
+
+func TestIntegrationRoomPurgedWhenLastParticipantLeaves(t *testing.T) {
+	_, svc, sessions := setupIntegration(t)
+	host := guestSession(t, sessions, "Host")
+	room, err := svc.Create(context.Background(), host, CreateInput{
+		Name:            "Efêmera",
+		Visibility:      models.VisibilityPublic,
+		MaxParticipants: 10,
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	deleted, err := svc.Leave(context.Background(), room.ID, host)
+	if err != nil {
+		t.Fatalf("Leave: %v", err)
+	}
+	if !deleted {
+		t.Fatal("expected room deleted when last participant left")
+	}
+
+	_, err = svc.GetByID(context.Background(), room.ID)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("GetByID after purge: got %v want ErrNotFound", err)
+	}
+}

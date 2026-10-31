@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Wifi, WifiOff } from "lucide-react";
 import { Button } from "@v0xlive/ui";
-import { ApiError, roomsApi } from "@/lib/api";
+import { ApiError, roomsApi, roomLeaveKeepalive } from "@/lib/api";
 import type { JoinRoomResponse, LiveKitTokenResponse } from "@v0xlive/api-client";
 import { cn } from "@/lib/cn";
 import { useEnsureGuestSession } from "@/hooks/useEnsureGuestSession";
@@ -55,6 +55,7 @@ export function RoomPage() {
   const [joined, setJoined] = useState(false);
   const autoJoinDone = useRef(false);
   const prejoinApplied = useRef(false);
+  const joinedRef = useRef(false);
 
   const session = useSessionUser();
   const { ensuring } = useEnsureGuestSession();
@@ -70,6 +71,7 @@ export function RoomPage() {
   const applyJoinSuccess = (data: JoinRoomResponse) => {
     setRole(data.role);
     setJoined(true);
+    joinedRef.current = true;
     if (data.livekit && roomId) {
       queryClient.setQueryData<LiveKitTokenResponse>(["livekit", roomId], data.livekit);
     }
@@ -89,9 +91,23 @@ export function RoomPage() {
     autoJoinDone.current = false;
     prejoinApplied.current = false;
     setJoined(false);
+    joinedRef.current = false;
     setRole(null);
     resetJoin();
   }, [roomId, resetJoin]);
+
+  useEffect(() => {
+    if (!roomId) {
+      return;
+    }
+    const onPageHide = () => {
+      if (joinedRef.current) {
+        roomLeaveKeepalive(roomId);
+      }
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [roomId]);
 
   useEffect(() => {
     if (!roomId || joined || prejoinApplied.current) {
@@ -153,6 +169,7 @@ export function RoomPage() {
     },
     onSettled: () => {
       setJoined(false);
+      joinedRef.current = false;
       if (roomId) {
         queryClient.removeQueries({ queryKey: ["livekit", roomId] });
       }
@@ -168,6 +185,14 @@ export function RoomPage() {
   useEffect(() => {
     document.title = `${t("meta.siteTitle")} | ${preview.data?.name ?? t("room.liveTitle")}`;
   }, [preview.data?.name, t, i18n.language]);
+
+  useEffect(() => {
+    if (lastEvent?.type !== "room.closed") {
+      return;
+    }
+    setJoined(false);
+    navigate("/dashboard", { replace: true });
+  }, [lastEvent, navigate]);
 
   if (!roomId) {
     return null;

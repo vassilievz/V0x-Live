@@ -459,13 +459,17 @@ func (h *Handler) leave(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "ID inválido")
 		return
 	}
-	if err := h.svc.Leave(r.Context(), roomID, sess); err != nil {
+	deleted, err := h.svc.Leave(r.Context(), roomID, sess)
+	if err != nil {
 		writeRoomErr(w, err)
 		return
 	}
 	h.hub.Publish(r.Context(), roomID.Hex(), realtime.EventParticipantLeft, map[string]string{
 		"session_id": sess.ID.Hex(),
 	})
+	if deleted {
+		h.publishRoomClosed(r.Context(), roomID)
+	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
@@ -484,9 +488,7 @@ func (h *Handler) closeRoom(w http.ResponseWriter, r *http.Request) {
 		writeRoomErr(w, err)
 		return
 	}
-	h.hub.Publish(r.Context(), roomID.Hex(), realtime.EventRoomClosed, map[string]string{
-		"room_id": roomID.Hex(),
-	})
+	h.publishRoomClosed(r.Context(), roomID)
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "closed"})
 }
 
@@ -540,13 +542,17 @@ func (h *Handler) removeParticipant(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "validation_error", "ID inválido")
 		return
 	}
-	if err := h.svc.RemoveParticipant(r.Context(), roomID, pid, sess); err != nil {
+	deleted, err := h.svc.RemoveParticipant(r.Context(), roomID, pid, sess)
+	if err != nil {
 		writeRoomErr(w, err)
 		return
 	}
 	h.hub.Publish(r.Context(), roomID.Hex(), realtime.EventParticipantLeft, map[string]string{
 		"participant_id": pid.Hex(),
 	})
+	if deleted {
+		h.publishRoomClosed(r.Context(), roomID)
+	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "removed"})
 }
 
@@ -592,6 +598,12 @@ func (h *Handler) publishParticipantJoined(ctx context.Context, roomID, displayN
 		"session_id":   "",
 		"display_name": displayName,
 		"role":         role,
+	})
+}
+
+func (h *Handler) publishRoomClosed(ctx context.Context, roomID primitive.ObjectID) {
+	h.hub.Publish(ctx, roomID.Hex(), realtime.EventRoomClosed, map[string]string{
+		"room_id": roomID.Hex(),
 	})
 }
 

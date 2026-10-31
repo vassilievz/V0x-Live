@@ -32,3 +32,14 @@ export function getWsUrl(roomId: string): string {
 export function getLiveKitUrl(): string {
   return import.meta.env.VITE_LIVEKIT_URL ?? "ws://localhost:7880";
 }
+
+/** Best-effort leave when the tab closes so empty rooms can be purged. */
+export function roomLeaveKeepalive(roomId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const base = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+  const path = `/api/v1/rooms/${encodeURIComponent(roomId)}/leave`;
+  const url = base ? `${base}${path}` : path;
+  void fetch(url, { method: "POST", credentials: "include", keepalive: true });
+}

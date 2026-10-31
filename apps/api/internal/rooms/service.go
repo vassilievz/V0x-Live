@@ -42,6 +42,9 @@ type Service struct {
 	participants *mongo.Collection
 	users        *mongo.Collection
 	sessions     *mongo.Collection
+	chatMessages *mongo.Collection
+	roomMusic    *mongo.Collection
+	roomCine     *mongo.Collection
 }
 
 func NewService(store *database.Store) *Service {
@@ -50,6 +53,9 @@ func NewService(store *database.Store) *Service {
 		participants: store.Collection("room_participants"),
 		users:        store.Collection("users"),
 		sessions:     store.Collection("user_sessions"),
+		chatMessages: store.Collection("chat_messages"),
+		roomMusic:    store.Collection("room_music"),
+		roomCine:     store.Collection("room_cine"),
 	}
 }
 
@@ -392,7 +398,7 @@ func (s *Service) joinRoom(ctx context.Context, room models.Room, sess session.S
 	return part, nil
 }
 
-func (s *Service) Leave(ctx context.Context, roomID primitive.ObjectID, sess session.Session) error {
+func (s *Service) Leave(ctx context.Context, roomID primitive.ObjectID, sess session.Session) (bool, error) {
 	now := time.Now().UTC()
 	res, err := s.participants.UpdateOne(ctx, bson.M{
 		"room_id":    roomID,
@@ -400,12 +406,12 @@ func (s *Service) Leave(ctx context.Context, roomID primitive.ObjectID, sess ses
 		"left_at":    nil,
 	}, bson.M{"$set": bson.M{"left_at": now}})
 	if err != nil {
-		return err
+		return false, err
 	}
 	if res.MatchedCount == 0 {
-		return ErrNotFound
+		return false, ErrNotFound
 	}
-	return nil
+	return s.tryDeleteRoomIfEmpty(ctx, roomID)
 }
 
 func (s *Service) Close(ctx context.Context, roomID primitive.ObjectID, sess session.Session) error {
@@ -417,21 +423,15 @@ func (s *Service) Close(ctx context.Context, roomID primitive.ObjectID, sess ses
 		return ErrForbidden
 	}
 	now := time.Now().UTC()
-	_, err = s.rooms.UpdateOne(ctx, bson.M{"_id": roomID}, bson.M{
-		"$set": bson.M{
-			"status":     models.StatusClosed,
-			"closed_at":  now,
-			"updated_at": now,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	_, _ = s.participants.UpdateMany(ctx, bson.M{
+	_, err = s.participants.UpdateMany(ctx, bson.M{
 		"room_id": roomID,
 		"left_at": nil,
 	}, bson.M{"$set": bson.M{"left_at": now}})
-	return nil
+	if err != nil {
+		return err
+	}
+	_, err = s.tryDeleteRoomIfEmpty(ctx, roomID)
+	return err
 }
 
 func (s *Service) ListParticipants(ctx context.Context, roomID primitive.ObjectID) ([]models.RoomParticipant, error) {
@@ -471,13 +471,13 @@ func (s *Service) EnsureActiveParticipant(ctx context.Context, roomID string, se
 	return err
 }
 
-func (s *Service) RemoveParticipant(ctx context.Context, roomID, participantID primitive.ObjectID, actor session.Session) error {
+func (s *Service) RemoveParticipant(ctx context.Context, roomID, participantID primitive.ObjectID, actor session.Session) (bool, error) {
 	actorPart, err := s.findActiveParticipant(ctx, roomID, actor.ID)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if actorPart.Role != models.RoleHost && actorPart.Role != models.RoleModerator {
-		return ErrForbidden
+		return false, ErrForbidden
 	}
 
 	var target models.RoomParticipant
@@ -488,19 +488,22 @@ func (s *Service) RemoveParticipant(ctx context.Context, roomID, participantID p
 	}).Decode(&target)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return ErrNotFound
+			return false, ErrNotFound
 		}
-		return err
+		return false, err
 	}
 	if target.Role == models.RoleHost {
-		return ErrForbidden
+		return false, ErrForbidden
 	}
 
 	now := time.Now().UTC()
 	_, err = s.participants.UpdateOne(ctx, bson.M{"_id": participantID}, bson.M{
 		"$set": bson.M{"left_at": now},
 	})
-	return err
+	if err != nil {
+		return false, err
+	}
+	return s.tryDeleteRoomIfEmpty(ctx, roomID)
 }
 
 type PermissionPatch struct {
@@ -684,7 +687,11 @@ func (s *Service) PruneStaleParticipants(ctx context.Context, roomID primitive.O
 	}, bson.M{
 		"$set": bson.M{"left_at": now},
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	_, _ = s.tryDeleteRoomIfEmpty(ctx, roomID)
+	return nil
 }
 
 func (s *Service) syncParticipantDisplayName(ctx context.Context, part models.RoomParticipant, sess session.Session) (models.RoomParticipant, error) {
