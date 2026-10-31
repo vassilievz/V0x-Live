@@ -1,0 +1,8 @@
+{
+  "extends": "@v0xlive/typescript-config/react.json",
+  "compilerOptions": {
+    "composite": true,
+    "jsx": "react-jsx"
+  },
+  "include": ["src"]
+}

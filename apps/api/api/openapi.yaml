@@ -1,0 +1,66 @@
+openapi: 3.0.3
+info:
+  title: V0x Live API
+  version: 0.2.0
+  description: |
+    REST + WebSocket para salas, chat, moderação e tokens LiveKit.
+    Health em `/health` e `/ready` (fora do prefixo `/api/v1`).
+servers:
+  - url: http://localhost:8080/api/v1
+paths:
+  /auth/logout:
+    post:
+      summary: Encerrar sessão (cookie)
+  /auth/guest:
+    post:
+      summary: Criar sessão com nome de exibição
+  /auth/me:
+    get:
+      summary: Sessão atual (nome escolhido)
+    patch:
+      summary: Atualizar nome e avatar da sessão
+  /rooms:
+    get:
+      summary: Salas públicas
+    post:
+      summary: Criar sala
+  /rooms/join-by-code:
+    post:
+      summary: Entrar por código (sessão obrigatória)
+  /rooms/{roomID}/preview:
+    get:
+      summary: Metadados públicos da sala (sem invite code)
+  /rooms/{roomID}:
+    get:
+      summary: Detalhe da sala (membro autenticado)
+    delete:
+      summary: Encerrar sala (host)
+  /rooms/{roomID}/join:
+    post:
+      summary: Entrar na sala
+  /rooms/{roomID}/leave:
+    post:
+      summary: Sair da sala
+  /rooms/{roomID}/participants:
+    get:
+      summary: Listar participantes
+  /rooms/{roomID}/participants/{participantID}:
+    delete:
+      summary: Remover participante (host/mod)
+  /rooms/{roomID}/participants/{participantID}/permissions:
+    patch:
+      summary: Permissões (host)
+  /rooms/{roomID}/messages:
+    get:
+      summary: Histórico de chat
+    post:
+      summary: Enviar mensagem
+  /rooms/{roomID}/livekit-token:
+    post:
+      summary: Token JWT LiveKit
+  /rooms/{roomID}/screen:
+    post:
+      summary: Sinalizar compartilhamento de tela (WebSocket fan-out)
+  /realtime/ws:
+    get:
+      summary: WebSocket autenticado (?room_id=)

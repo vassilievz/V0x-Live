@@ -1,0 +1,525 @@
+/* Hover textures — each control family gets its own treatment (halftone / noise family). */
+
+:root {
+  --hover-dot: color-mix(in oklab, var(--color-muted) 48%, var(--color-border));
+  --hover-dot-bright: color-mix(in oklab, var(--color-foreground) 22%, var(--color-muted));
+}
+
+/* —— Primary pill CTAs (action-link filled) —— sweep + dense halftone (clipped to pill) */
+.action-link:not(.action-link--outline)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 360ms ease;
+  background-image: radial-gradient(circle, rgb(0 0 0 / 0.22) 0.65px, transparent 0.66px);
+  background-size: 6px 6px;
+  z-index: 0;
+}
+
+.action-link:not(.action-link--outline)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    108deg,
+    transparent 42%,
+    rgb(255 255 255 / 0.14) 50%,
+    transparent 58%
+  );
+  transform: translate3d(-120%, 0, 0);
+  transition: transform 620ms var(--ease-signal);
+  z-index: 0;
+  will-change: transform;
+}
+
+.action-link:not(.action-link--outline):hover::before {
+  opacity: 1;
+}
+
+.action-link:not(.action-link--outline):hover::after {
+  transform: translate3d(120%, 0, 0);
+}
+
+.action-link:not(.action-link--outline) > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* —— Outline CTAs — wire halftone on border */
+.action-link--outline {
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.action-link--outline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 280ms ease;
+  background-image: radial-gradient(circle, rgb(0 0 0 / 0.2) 0.65px, transparent 0.66px);
+  background-size: 6px 6px;
+  z-index: 0;
+}
+
+.action-link--outline:hover::before {
+  opacity: 0.45;
+}
+
+.action-link--outline:hover {
+  border-color: var(--color-foreground);
+}
+
+.action-link--outline > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* —— Text links — stipple underline grows */
+.text-link {
+  position: relative;
+  text-decoration: none;
+  background-image: linear-gradient(var(--hover-dot-bright), var(--hover-dot-bright));
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  transition:
+    color 180ms ease,
+    background-size 420ms var(--ease-signal);
+}
+
+.text-link:hover {
+  background-size: 100% 1px;
+  text-shadow: 0 0 24px color-mix(in oklab, var(--color-foreground) 12%, transparent);
+}
+
+/* —— Header nav — dot bloom */
+.nav-link {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.nav-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.92);
+  transition:
+    opacity 260ms ease,
+    transform 360ms var(--ease-signal);
+  background-image: radial-gradient(circle, var(--hover-dot) 0.55px, transparent 0.56px);
+  background-size: 7px 7px;
+  z-index: -1;
+}
+
+.nav-link:hover::before,
+.nav-link[aria-current="page"]::before {
+  opacity: 0.55;
+  transform: scale(1);
+}
+
+/* —— Profile chip — soft grain vignette */
+.header-profile-link {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.header-profile-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 320ms ease;
+  background: radial-gradient(
+    ellipse 120% 100% at 50% 50%,
+    rgb(255 255 255 / 0.06),
+    transparent 55%
+  );
+}
+
+.header-profile-link:hover::after {
+  opacity: 1;
+}
+
+/* —— Mobile menu toggle — brief scan glitch */
+.menu-toggle {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.menu-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 2px,
+    rgb(255 255 255 / 0.04) 2px 3px
+  );
+  transform: translateY(-100%);
+  transition:
+    transform 480ms var(--ease-signal),
+    opacity 200ms ease;
+}
+
+.menu-toggle:hover::before {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* —— Mobile nav rows — noise tick on hover */
+.mobile-nav a {
+  position: relative;
+}
+
+.mobile-nav a::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 1px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--hover-dot-bright) 0 3px,
+    transparent 3px 6px
+  );
+  transition: width 380ms var(--ease-signal);
+}
+
+.mobile-nav a:hover::before {
+  width: 100%;
+}
+
+/* —— Footer links — dashed grain underline */
+.site-footer-dotfield .footer-links a {
+  position: relative;
+  text-decoration: none;
+}
+
+.site-footer-dotfield .footer-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 340ms var(--ease-signal);
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--color-foreground) 55%, var(--color-muted)) 0 4px,
+    transparent 4px 7px
+  );
+}
+
+.site-footer-dotfield .footer-links a:hover::after {
+  transform: scaleX(1);
+}
+
+/* —— Form choice cards — corner bracket noise */
+.visibility-choice {
+  position: relative;
+  overflow: hidden;
+}
+
+.visibility-choice::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: calc(var(--radius-lg) - 4px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  background:
+    linear-gradient(var(--hover-dot), var(--hover-dot)) left top / 12px 1px no-repeat,
+    linear-gradient(var(--hover-dot), var(--hover-dot)) left top / 1px 12px no-repeat,
+    linear-gradient(var(--hover-dot), var(--hover-dot)) right bottom / 12px 1px no-repeat,
+    linear-gradient(var(--hover-dot), var(--hover-dot)) right bottom / 1px 12px no-repeat;
+}
+
+.visibility-choice:hover::after {
+  opacity: 0.9;
+}
+
+/* —— UI Button variants (packages/ui) —— */
+.hover-surface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.hover-surface--btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  background-image: radial-gradient(circle, rgb(0 0 0 / 0.2) 0.7px, transparent 0.71px);
+  background-size: 5px 5px;
+  z-index: 0;
+}
+
+.hover-surface--btn-primary:hover::before {
+  opacity: 0.7;
+}
+
+.hover-surface--btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--hx, 50%) var(--hy, 50%),
+    rgb(255 255 255 / 0.14),
+    transparent 55%
+  );
+  opacity: 0;
+  transition: opacity 280ms ease;
+  z-index: 0;
+}
+
+.hover-surface--btn-primary:hover::after {
+  opacity: 1;
+}
+
+.hover-surface--btn-secondary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-foreground) 18%, var(--color-border));
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 8px,
+    rgb(255 255 255 / 0.025) 8px 9px
+  );
+}
+
+.hover-surface--btn-secondary:hover::before {
+  opacity: 1;
+}
+
+.hover-surface--btn-ghost::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 220ms ease,
+    transform 320ms var(--ease-signal);
+  background-image: radial-gradient(circle, var(--hover-dot) 0.5px, transparent 0.51px);
+  background-size: 8px 8px;
+}
+
+.hover-surface--btn-ghost:hover::before {
+  opacity: 0.45;
+  transform: scale(1);
+}
+
+.hover-surface--btn-danger::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 240ms ease;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 5px,
+    rgb(255 255 255 / 0.035) 5px 6px
+  );
+}
+
+.hover-surface--btn-danger:hover::before {
+  opacity: 1;
+}
+
+/* Hero create — pill shock ring */
+.home-create-submit.hover-surface--btn-primary::after {
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--hx, 50%) var(--hy, 50%),
+    rgb(255 255 255 / 0.12),
+    transparent 58%
+  );
+  box-shadow: none;
+  transition: opacity 280ms ease;
+}
+
+.home-create-submit.hover-surface--btn-primary:hover::after {
+  opacity: 1;
+  box-shadow: none;
+}
+
+/* —— Room music controls —— */
+.room-music-icon-btn,
+.room-music-play-btn,
+.room-music-player-close {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.room-music-icon-btn::after,
+.room-music-player-close::after {
+  content: "";
+  position: absolute;
+  inset: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition:
+    width 420ms var(--ease-signal),
+    height 420ms var(--ease-signal),
+    opacity 320ms ease;
+  opacity: 0;
+  border: 1px solid color-mix(in oklab, var(--color-foreground) 35%, var(--color-border));
+}
+
+.room-music-icon-btn:hover:not(:disabled)::after,
+.room-music-player-close:hover:not(:disabled)::after {
+  width: 140%;
+  height: 140%;
+  opacity: 1;
+}
+
+.room-music-play-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  background-image: radial-gradient(circle, rgb(0 0 0 / 0.35) 0.55px, transparent 0.56px);
+  background-size: 4px 4px;
+  mix-blend-mode: multiply;
+}
+
+.room-music-play-btn:hover:not(:disabled)::before {
+  opacity: 0.65;
+}
+
+/* —— Room cards / meta links —— subtle only, no card-wide beam */
+.room-card-meta .text-link {
+  background-image: none;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.room-card-meta .text-link:hover {
+  background-size: 0;
+  text-shadow: none;
+  letter-spacing: 0;
+  color: var(--color-foreground);
+}
+
+.hover-surface--btn-primary {
+  --hx: 50%;
+  --hy: 50%;
+}
+
+@media (hover: hover) {
+  .hover-surface--btn-primary:hover {
+    --hx: 50%;
+    --hy: 40%;
+  }
+}
+
+/* —— FAQ rows — halftone fill + barra lateral (monocromático) */
+.home-faq-item summary {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.home-faq-item summary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: 3px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 320ms ease;
+  z-index: 0;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--color-muted) 42%, var(--color-border)) 0.55px,
+    transparent 0.56px
+  );
+  background-size: 7px 7px;
+}
+
+.home-faq-item summary:hover::before,
+.home-faq-item[open] summary::before {
+  opacity: 0.5;
+}
+
+.home-faq-item summary > * {
+  position: relative;
+  z-index: 1;
+}
+
+.home-faq-item summary::after {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-link::before,
+  .action-link::after,
+  .nav-link::before,
+  .text-link,
+  .menu-toggle::before,
+  .hover-surface::before,
+  .hover-surface::after,
+  .visibility-choice::after,
+  .room-music-icon-btn::after,
+  .room-music-play-btn::before {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .action-link:hover::before,
+  .nav-link:hover::before {
+    opacity: 0.35;
+  }
+
+  .action-link:hover::after {
+    transform: none;
+  }
+
+  .text-link:hover {
+    background-size: 100% 1px;
+  }
+}
