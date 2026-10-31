@@ -14,6 +14,7 @@ type Config struct {
 	HTTPAddr           string
 	MongoURL           string
 	SessionCookieName  string
+	SessionCookieDomain string
 	SessionMaxAge      time.Duration
 	CORSAllowedOrigins []string
 	TrustProxy         bool
@@ -51,6 +52,7 @@ func Load() (Config, error) {
 		HTTPAddr:           httpAddr,
 		MongoURL:           mongoURL,
 		SessionCookieName:  getEnv("SESSION_COOKIE_NAME", "v0x_session"),
+		SessionCookieDomain: strings.TrimSpace(getEnv("SESSION_COOKIE_DOMAIN", "")),
 		SessionMaxAge:      7 * 24 * time.Hour,
 		CORSAllowedOrigins: splitCSV(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")),
 		TrustProxy:         strings.EqualFold(getEnv("TRUST_PROXY", "false"), "true"),

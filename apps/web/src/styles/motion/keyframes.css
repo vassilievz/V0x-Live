@@ -16,3 +16,19 @@
 @keyframes skeleton-pulse {
   to { opacity: 0.45; }
 }
+
+@keyframes room-entry-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes room-entry-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

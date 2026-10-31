@@ -29,18 +29,20 @@ type Session struct {
 }
 
 type Manager struct {
-	sessions   *mongo.Collection
-	cookieName string
-	maxAge     time.Duration
-	secure     bool
+	sessions     *mongo.Collection
+	cookieName   string
+	cookieDomain string
+	maxAge       time.Duration
+	secure       bool
 }
 
-func NewManager(store *database.Store, cookieName string, maxAge time.Duration, secure bool) *Manager {
+func NewManager(store *database.Store, cookieName string, cookieDomain string, maxAge time.Duration, secure bool) *Manager {
 	return &Manager{
-		sessions:   store.Collection("user_sessions"),
-		cookieName: cookieName,
-		maxAge:     maxAge,
-		secure:     secure,
+		sessions:     store.Collection("user_sessions"),
+		cookieName:   cookieName,
+		cookieDomain: cookieDomain,
+		maxAge:       maxAge,
+		secure:       secure,
 	}
 }
 
@@ -95,27 +97,43 @@ func (m *Manager) UpdateGuest(ctx context.Context, id primitive.ObjectID, displa
 }
 
 func (m *Manager) SetCookie(w http.ResponseWriter, rawToken string) {
-	http.SetCookie(w, &http.Cookie{
+	sameSite := http.SameSiteLaxMode
+	if m.secure {
+		sameSite = http.SameSiteNoneMode
+	}
+	cookie := &http.Cookie{
 		Name:     m.cookieName,
 		Value:    rawToken,
 		Path:     "/",
 		MaxAge:   int(m.maxAge.Seconds()),
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 		Secure:   m.secure,
-	})
+	}
+	if m.cookieDomain != "" {
+		cookie.Domain = m.cookieDomain
+	}
+	http.SetCookie(w, cookie)
 }
 
 func (m *Manager) ClearCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
+	sameSite := http.SameSiteLaxMode
+	if m.secure {
+		sameSite = http.SameSiteNoneMode
+	}
+	cookie := &http.Cookie{
 		Name:     m.cookieName,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 		Secure:   m.secure,
-	})
+	}
+	if m.cookieDomain != "" {
+		cookie.Domain = m.cookieDomain
+	}
+	http.SetCookie(w, cookie)
 }
 
 func (m *Manager) FromRequest(ctx context.Context, r *http.Request) (Session, error) {

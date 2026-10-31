@@ -41,7 +41,7 @@ func setupIntegration(t *testing.T) (*database.Store, *Service, *session.Manager
 	}
 
 	svc := NewService(store)
-	sessions := session.NewManager(store, "test_session", time.Hour, false)
+	sessions := session.NewManager(store, "test_session", "", time.Hour, false)
 	t.Cleanup(func() {
 		cleanup, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()

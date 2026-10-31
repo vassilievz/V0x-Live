@@ -32,7 +32,7 @@ type Server struct {
 }
 
 func New(cfg config.Config, store *database.Store) *Server {
-	sessions := session.NewManager(store, cfg.SessionCookieName, cfg.SessionMaxAge, cfg.SecureCookies())
+	sessions := session.NewManager(store, cfg.SessionCookieName, cfg.SessionCookieDomain, cfg.SessionMaxAge, cfg.SecureCookies())
 	hub := realtime.NewHub()
 	roomSvc := rooms.NewService(store)
 

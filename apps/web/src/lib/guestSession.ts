@@ -18,6 +18,21 @@ export function hasSessionCookie(): boolean {
   });
 }
 
+async function refreshSessionFromCookie(
+  queryClient: QueryClient,
+): Promise<AuthUser | null> {
+  if (!hasSessionCookie()) {
+    return null;
+  }
+  try {
+    const user = await authApi.me();
+    queryClient.setQueryData(["auth", "me"], user);
+    return user;
+  } catch {
+    return null;
+  }
+}
+
 /** Idempotent guest session; safe to call from hover, layout, and room entry. */
 export function ensureGuestSession(queryClient: QueryClient): Promise<AuthUser | null> {
   const cached = queryClient.getQueryData<AuthUser>(["auth", "me"]);
@@ -29,16 +44,31 @@ export function ensureGuestSession(queryClient: QueryClient): Promise<AuthUser |
     return ensurePromise;
   }
 
-  ensurePromise = authApi
-    .guest(DEFAULT_GUEST_DISPLAY_NAME)
-    .then((user) => {
+  ensurePromise = (async () => {
+    const fromCookie = await refreshSessionFromCookie(queryClient);
+    if (fromCookie) {
+      return fromCookie;
+    }
+
+    try {
+      const user = await authApi.guest(DEFAULT_GUEST_DISPLAY_NAME);
       queryClient.setQueryData(["auth", "me"], user);
       return user;
-    })
-    .catch(() => null)
-    .finally(() => {
-      ensurePromise = null;
-    });
+    } catch {
+      return null;
+    }
+  })().finally(() => {
+    ensurePromise = null;
+  });
 
   return ensurePromise;
+}
+
+/** Re-sync session cookie with React Query (e.g. before leave after a stale cache). */
+export async function syncSessionUser(queryClient: QueryClient): Promise<AuthUser | null> {
+  const cached = queryClient.getQueryData<AuthUser>(["auth", "me"]);
+  if (cached) {
+    return cached;
+  }
+  return refreshSessionFromCookie(queryClient);
 }

@@ -1,13 +1,5 @@
-import { useTranslation } from "react-i18next";
+import { RoomEntryLoading } from "@/features/rooms/components/RoomEntryLoading";
 
 export function RoomPageSuspenseFallback() {
-  const { t } = useTranslation();
-  return (
-    <div
-      className="flex min-h-dvh items-center justify-center text-sm text-muted"
-      role="status"
-    >
-      {t("room.bundlePreparing")}
-    </div>
-  );
+  return <RoomEntryLoading compact />;
 }

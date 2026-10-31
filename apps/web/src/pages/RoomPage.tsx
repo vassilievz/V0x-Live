@@ -8,6 +8,8 @@ import { ApiError, roomsApi } from "@/lib/api";
 import type { JoinRoomResponse, LiveKitTokenResponse } from "@v0xlive/api-client";
 import { cn } from "@/lib/cn";
 import { useEnsureGuestSession } from "@/hooks/useEnsureGuestSession";
+import { RoomEntryLoading } from "@/features/rooms/components/RoomEntryLoading";
+import { ensureGuestSession, syncSessionUser } from "@/lib/guestSession";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
 import { LiveKitStage } from "@/features/streaming/components/LiveKitStage";
@@ -21,7 +23,6 @@ import { RoomStageShell } from "@/features/rooms/components/RoomStageShell";
 import {
   actionLink,
   actionLinkPill,
-  fieldHelp,
   homeBentoPanel,
   homeCellCode,
   homeSectionTitle,
@@ -29,7 +30,6 @@ import {
   roomStagePlaceholder,
   roomStagePlaceholderMuted,
   sitePanel,
-  sitePanelCompact,
 } from "@/ui";
 
 export function RoomPage() {
@@ -91,8 +91,33 @@ export function RoomPage() {
   const { connected, lastEvent } = useRoomSocket(roomId, joined || join.isPending);
 
   const leave = useMutation({
-    mutationFn: () => roomsApi.leave(roomId!),
-    onSuccess: () => navigate("/dashboard"),
+    mutationFn: async () => {
+      try {
+        await roomsApi.leave(roomId!);
+        return;
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status !== 401) {
+          throw err;
+        }
+        await syncSessionUser(queryClient);
+        await ensureGuestSession(queryClient);
+        try {
+          await roomsApi.leave(roomId!);
+        } catch (retryErr) {
+          if (retryErr instanceof ApiError && (retryErr.status === 401 || retryErr.status === 404)) {
+            return;
+          }
+          throw retryErr;
+        }
+      }
+    },
+    onSettled: () => {
+      setJoined(false);
+      if (roomId) {
+        queryClient.removeQueries({ queryKey: ["livekit", roomId] });
+      }
+      navigate("/dashboard");
+    },
   });
 
   const closeRoom = useMutation({
@@ -119,15 +144,7 @@ export function RoomPage() {
   const showStage = joined || join.isPending || join.isError;
 
   if (waitingSession && !joined) {
-    return (
-      <SiteCatalogShell>
-        <section className={cn(homeBentoPanel, sitePanelCompact)}>
-          <p className={fieldHelp} role="status">
-            {t("room.loading")}
-          </p>
-        </section>
-      </SiteCatalogShell>
-    );
+    return <RoomEntryLoading />;
   }
 
   if (preview.isError) {
@@ -163,13 +180,7 @@ export function RoomPage() {
 
   if (!showStage) {
     return (
-      <SiteCatalogShell>
-        <section className={cn(homeBentoPanel, sitePanelCompact)}>
-          <p className={fieldHelp} role="status">
-            {join.isPending ? t("room.joining") : t("room.loading")}
-          </p>
-        </section>
-      </SiteCatalogShell>
+      <RoomEntryLoading message={join.isPending ? t("room.joining") : t("room.loading")} />
     );
   }
 
