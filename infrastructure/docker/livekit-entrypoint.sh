@@ -96,13 +96,13 @@ else
   log "AVISO: sem TCP proxy Railway na porta 7881 — WebRTC UDP falha aqui; crie o proxy e redeploy."
 fi
 
-# Railway HTTP/WSS (domínio lklive) usa $PORT — NUNCA 7881 (reservada ao socat / TCP proxy).
-listen="${LIVEKIT_HTTP_PORT:-${PORT:-7880}}"
+# Railway HTTP/WSS (domínio lklive). Com TCP proxy na 7881, a Railway injeta PORT=7881 no container.
+_http_from_env="${LIVEKIT_HTTP_PORT:-${PORT:-7880}}"
+listen="$_http_from_env"
 if [ -n "$ICE_TCP_PORT" ] && [ "$listen" = "$BRIDGE_FROM" ]; then
-  log "FATAL: PORT=${listen} conflita com o TCP proxy de mídia (:${BRIDGE_FROM})."
-  log "FATAL: remova PORT=7881 (e LIVEKIT_RTC_TCP_PORT) das variáveis do serviço LiveKit."
-  log "FATAL: deixe a Railway injetar PORT só para HTTP/WSS; TCP proxy separado na 7881."
-  exit 1
+  listen="8080"
+  log "AVISO: container PORT=${_http_from_env} (TCP proxy); HTTP/WSS usa ${listen}."
+  log "AVISO: adicione variable PORT=8080 neste serviço (sobrescreve a Railway)."
 fi
 log "HTTP/WSS (signalling) port: ${listen}"
 

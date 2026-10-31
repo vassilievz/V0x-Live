@@ -134,11 +134,14 @@ Depois de mudar `VITE_*` → **Redeploy**.
 ```env
 REDIS_URL=<referência ao plugin Redis, ou colar REDIS_URL>
 LIVEKIT_KEYS=v0xlive_prod: <secret>
+PORT=8080
 ```
+
+Com **TCP proxy → :7881**, a Railway **injeta `PORT=7881` no container** (não aparece na lista de variables). Definir **`PORT=8080` no painel** corrige WSS (`lklive`) e o health check.
 
 No LiveKit: **Add variable → Reference** → serviço Redis → `REDIS_URL`.
 
-**Custom Domain:** `lklive.v0x.lol`
+**Networking:** Custom domain `lklive.v0x.lol` + **TCP Proxy** container port **7881** (mídia).
 
 ---
 
