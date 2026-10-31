@@ -11,8 +11,6 @@ import { SiteCatalogShell } from "@/components/layout/SiteCatalogShell";
 import { SitePageHead } from "@/components/layout/SitePageHead";
 import { ExploreRoomsHero } from "@/features/rooms/components/ExploreRoomsHero";
 import { PublicRoomCardMedia } from "@/features/rooms/components/PublicRoomCardMedia";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { useSessionUser } from "@/hooks/useSessionUser";
 import {
   actionLink,
   actionLinkPill,
@@ -54,7 +52,6 @@ export function ExploreRoomsPage() {
   const [sort, setSort] = useState<RoomSort>("people");
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
-  const session = useSessionUser();
   const locale = searchLocale(i18n.language);
   const rooms = useQuery({
     queryKey: ["rooms", "public"],
@@ -146,7 +143,6 @@ export function ExploreRoomsPage() {
               <option value="people">{t("explore.sortPeople")}</option>
               <option value="recent">{t("explore.sortRecent")}</option>
             </select>
-            {!session.data || session.data.is_guest ? <GoogleSignInButton /> : null}
           </div>
         </div>
 
