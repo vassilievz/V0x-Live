@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { SlidersHorizontal } from "lucide-react";
 import {
@@ -12,6 +13,7 @@ import {
   buildScreenShareMediaOptions,
 } from "@/features/streaming/broadcastSettings";
 import { useBroadcastSettings } from "@/features/streaming/BroadcastSettingsContext";
+import { soundEffects } from "@/utils/soundEffects";
 import { BroadcastSettingsMenu } from "@/features/streaming/components/BroadcastSettingsMenu";
 import { BroadcastRoomMediaButton } from "@/features/streaming/components/BroadcastRoomMediaButton";
 import { BroadcastRoomCineButton } from "@/features/room-cine/components/BroadcastRoomCineButton";
@@ -57,6 +59,8 @@ export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: Broad
   const { localParticipant } = useLocalParticipant();
   const [qualityOpen, setQualityOpen] = useState(false);
   const qualityAnchorRef = useRef<HTMLDivElement>(null);
+  const qualityMenuRef = useRef<HTMLDivElement>(null);
+  const [qualityMenuStyle, setQualityMenuStyle] = useState<CSSProperties>({});
 
   const screenMedia = useMemo(
     () => buildScreenShareMediaOptions(settings),
@@ -64,14 +68,58 @@ export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: Broad
   );
   const cameraMedia = useMemo(() => buildCameraMediaOptions(settings), [settings]);
   const screenOn = localParticipant?.isScreenShareEnabled ?? false;
+  const micOn = localParticipant?.isMicrophoneEnabled ?? false;
+  const micOnRef = useRef(micOn);
+
+  useEffect(() => {
+    if (micOnRef.current === micOn) {
+      return;
+    }
+    if (micOn) {
+      soundEffects.playUnmute();
+    } else {
+      soundEffects.playMute();
+    }
+    micOnRef.current = micOn;
+  }, [micOn]);
 
   const closeQuality = useCallback(() => setQualityOpen(false), []);
+
+  const updateQualityMenuPosition = useCallback(() => {
+    const anchor = qualityAnchorRef.current;
+    if (!anchor) {
+      return;
+    }
+    const rect = anchor.getBoundingClientRect();
+    setQualityMenuStyle({
+      position: "fixed",
+      top: rect.top - 10,
+      left: rect.right,
+      transform: "translate(-100%, -100%)",
+      width: Math.min(300, window.innerWidth - 32),
+      zIndex: 200,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!qualityOpen) {
+      return;
+    }
+    updateQualityMenuPosition();
+    window.addEventListener("resize", updateQualityMenuPosition);
+    window.addEventListener("scroll", updateQualityMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateQualityMenuPosition);
+      window.removeEventListener("scroll", updateQualityMenuPosition, true);
+    };
+  }, [qualityOpen, updateQualityMenuPosition]);
 
   useEffect(() => {
     if (!qualityOpen) return;
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
       if (qualityAnchorRef.current?.contains(target)) return;
+      if (qualityMenuRef.current?.contains(target)) return;
       setQualityOpen(false);
     };
     document.addEventListener("mousedown", onPointerDown);
@@ -177,12 +225,27 @@ export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: Broad
                 className={`lk-button broadcast-control-bar-btn broadcast-quality-trigger${qualityOpen ? " is-open" : ""}`}
                 aria-expanded={qualityOpen}
                 aria-haspopup="dialog"
-                onClick={() => setQualityOpen((v) => !v)}
+                onClick={() => {
+                  setQualityOpen((open) => {
+                    const next = !open;
+                    if (next) {
+                      window.requestAnimationFrame(() => updateQualityMenuPosition());
+                    }
+                    return next;
+                  });
+                }}
               >
                 <SlidersHorizontal size={16} aria-hidden="true" />
                 {compact ? t("broadcast.qualityShort") : t("broadcast.quality")}
               </button>
-              <BroadcastSettingsMenu open={qualityOpen} onClose={closeQuality} />
+              {qualityOpen && typeof document !== "undefined"
+                ? createPortal(
+                    <div ref={qualityMenuRef} style={qualityMenuStyle}>
+                      <BroadcastSettingsMenu open onClose={closeQuality} />
+                    </div>,
+                    document.body,
+                  )
+                : null}
             </div>
           </div>
         </div>

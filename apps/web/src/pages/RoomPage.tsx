@@ -4,12 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Wifi, WifiOff } from "lucide-react";
 import { Button } from "@v0xlive/ui";
-import { ApiError, roomsApi, roomLeaveKeepalive } from "@/lib/api";
+import { ApiError, roomsApi } from "@/lib/api";
 import type { JoinRoomResponse, LiveKitTokenResponse } from "@v0xlive/api-client";
 import { cn } from "@/lib/cn";
 import { useEnsureGuestSession } from "@/hooks/useEnsureGuestSession";
 import { RoomEntryLoading } from "@/features/rooms/components/RoomEntryLoading";
 import { ensureGuestSession, syncSessionUser } from "@/lib/guestSession";
+import { isReloadNavigation } from "@/lib/navigationType";
+import { soundEffects } from "@/utils/soundEffects";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
 import { LiveKitStage } from "@/features/streaming/components/LiveKitStage";
@@ -75,6 +77,10 @@ export function RoomPage() {
     if (data.livekit && roomId) {
       queryClient.setQueryData<LiveKitTokenResponse>(["livekit", roomId], data.livekit);
     }
+    void queryClient.invalidateQueries({ queryKey: ["participants", roomId] });
+    if (!isReloadNavigation()) {
+      soundEffects.playJoin();
+    }
   };
 
   const join = useMutation({
@@ -97,19 +103,6 @@ export function RoomPage() {
   }, [roomId, resetJoin]);
 
   useEffect(() => {
-    if (!roomId) {
-      return;
-    }
-    const onPageHide = () => {
-      if (joinedRef.current) {
-        roomLeaveKeepalive(roomId);
-      }
-    };
-    window.addEventListener("pagehide", onPageHide);
-    return () => window.removeEventListener("pagehide", onPageHide);
-  }, [roomId]);
-
-  useEffect(() => {
     if (!roomId || joined || prejoinApplied.current) {
       return;
     }
@@ -130,12 +123,19 @@ export function RoomPage() {
     if (!session.isSuccess || !preview.data) {
       return;
     }
-    if (!mayAutoJoinFromEntry(preview.data)) {
+    if (!mayAutoJoinFromEntry(preview.data) && !preview.data.can_resume) {
       return;
     }
     autoJoinDone.current = true;
     joinRoom(undefined);
   }, [roomId, joined, session.isSuccess, preview.data, join.isPending, joinRoom]);
+
+  useQuery({
+    queryKey: ["participants", roomId],
+    queryFn: () => roomsApi.participants(roomId!),
+    enabled: !!roomId && joined,
+    staleTime: 0,
+  });
 
   const livekit = useQuery({
     queryKey: ["livekit", roomId],
@@ -152,6 +152,13 @@ export function RoomPage() {
   });
 
   const { connected, lastEvent } = useRoomSocket(roomId, joined);
+
+  useEffect(() => {
+    if (lastEvent?.type !== "room.participant.joined") {
+      return;
+    }
+    void queryClient.invalidateQueries({ queryKey: ["participants", roomId] });
+  }, [lastEvent, queryClient, roomId]);
 
   const leave = useMutation({
     mutationFn: async () => {
@@ -175,6 +182,7 @@ export function RoomPage() {
       }
     },
     onSettled: () => {
+      soundEffects.playLeave();
       setJoined(false);
       joinedRef.current = false;
       if (roomId) {
@@ -206,7 +214,10 @@ export function RoomPage() {
   }
 
   const roomName = preview.data?.name ?? t("room.defaultName");
-  const waitingSession = session.isLoading || ensuring || preview.isLoading;
+  const waitingSession =
+    ((session.isLoading || session.isFetching) && !session.data) ||
+    ensuring ||
+    ((preview.isLoading || preview.isFetching) && !preview.data);
   const needsInviteGate = preview.data ? needsRoomInviteGate(preview.data) : false;
 
   const showGate =
@@ -327,6 +338,7 @@ export function RoomPage() {
             lastEvent={lastEvent}
             viewerRole={role}
             embedded
+            active={joined}
           />
         )
       }

@@ -12,6 +12,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RealtimeEvent, RoomCinePatchBody, RoomCineState } from "@v0xlive/api-client";
 import { roomsApi } from "@/lib/api";
+import { soundEffects } from "@/utils/soundEffects";
 import { useRoomCineDirect } from "@/features/room-cine/useRoomCineDirect";
 
 type DirectEngine = ReturnType<typeof useRoomCineDirect>;
@@ -77,6 +78,14 @@ export function RoomCineProvider({ roomId, lastEvent, children }: ProviderProps)
   const isCatalog = isActive && state?.mode === "catalog";
   const isDirect = isActive && state?.mode === "direct";
   const canControl = state?.can_control === true;
+  const wasActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (isActive && !wasActiveRef.current) {
+      soundEffects.playCineStart();
+    }
+    wasActiveRef.current = isActive;
+  }, [isActive]);
 
   const direct = useRoomCineDirect({
     roomId,

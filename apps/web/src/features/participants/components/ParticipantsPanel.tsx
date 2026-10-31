@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Mic, MicOff, UserMinus, Video, VideoOff } from "lucide-react";
@@ -5,6 +6,7 @@ import type { RealtimeEvent } from "@v0xlive/api-client";
 import { Button } from "@v0xlive/ui";
 import { UserAvatar } from "@/components/user/UserAvatar";
 import { roomsApi } from "@/lib/api";
+import { isParticipantRealtimeEvent } from "@/features/participants/participantRealtime";
 import { cn } from "@/lib/cn";
 import { participantRoleKey } from "@/i18n/participantRole";
 import {
@@ -32,16 +34,26 @@ type Props = {
   lastEvent: RealtimeEvent | null;
   viewerRole: string | null;
   embedded?: boolean;
+  active?: boolean;
 };
 
-export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded }: Props) {
+export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded, active = true }: Props) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const list = useQuery({
     queryKey: ["participants", roomId],
     queryFn: () => roomsApi.participants(roomId),
-    refetchInterval: lastEvent?.type?.startsWith("room.participant") ? 2000 : 8000,
+    enabled: active,
+    staleTime: 0,
+    refetchInterval: active ? (lastEvent && isParticipantRealtimeEvent(lastEvent) ? 4000 : 12_000) : false,
   });
+
+  useEffect(() => {
+    if (!active || !isParticipantRealtimeEvent(lastEvent)) {
+      return;
+    }
+    void queryClient.invalidateQueries({ queryKey: ["participants", roomId] });
+  }, [active, lastEvent, queryClient, roomId]);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["participants", roomId] });
