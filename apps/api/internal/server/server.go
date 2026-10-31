@@ -18,6 +18,7 @@ import (
 	"github.com/v0xlive/v0x-live/apps/api/internal/health"
 	apimw "github.com/v0xlive/v0x-live/apps/api/internal/middleware"
 	"github.com/v0xlive/v0x-live/apps/api/internal/music"
+	"github.com/v0xlive/v0x-live/apps/api/internal/presence"
 	"github.com/v0xlive/v0x-live/apps/api/internal/realtime"
 	"github.com/v0xlive/v0x-live/apps/api/internal/rooms"
 	"github.com/v0xlive/v0x-live/apps/api/internal/streaming"
@@ -43,6 +44,8 @@ func New(cfg config.Config, store *database.Store) *Server {
 	streamHandler := streaming.NewHandler(cfg, roomSvc)
 	realtimeHandler := realtime.NewHandler(hub, sessions, roomSvc, cfg)
 	healthHandler := health.NewHandler(store, version)
+	presenceStore := presence.NewStore(90 * time.Second)
+	presenceHandler := presence.NewHandler(presenceStore)
 	limiter := apimw.NewRateLimiter(cfg.RateLimitRPS, cfg.RateLimitBurst, cfg.TrustProxy, cfg.RateLimitMaxIPs, cfg.RateLimitVisitorTTL)
 	guestLimiter := apimw.NewRateLimiter(cfg.AuthGuestRPS, cfg.AuthGuestBurst, cfg.TrustProxy, cfg.RateLimitMaxIPs, cfg.RateLimitVisitorTTL)
 
@@ -68,6 +71,8 @@ func New(cfg config.Config, store *database.Store) *Server {
 		api.Route("/auth", func(ar chi.Router) {
 			authHandler.RegisterRoutes(ar, guestLimiter.Middleware)
 		})
+		api.Get("/stats/online", presenceHandler.OnlineCount)
+		api.With(auth.RequireSession(sessions)).Post("/presence/heartbeat", presenceHandler.Heartbeat)
 		api.With(auth.RequireSession(sessions)).Get("/realtime/ws", realtimeHandler.ServeWS)
 
 		api.Route("/rooms", func(rr chi.Router) {

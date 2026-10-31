@@ -74,6 +74,13 @@ export const en = {
       lead:
         "Share screen, voice, and chat with people you invite. No download—right in the browser.",
       publicRooms: "Browse public rooms",
+      onlineNow_one: "{{count}} person online now",
+      onlineNow_other: "{{count}} people online now",
+      onlineLoading: "Checking who's online…",
+    },
+    meta: {
+      onlineNow_one: "{{count}} online now",
+      onlineNow_other: "{{count}} online now",
     },
     steps: {
       title: "From your screen to the room in three steps",
@@ -140,6 +147,8 @@ export const en = {
     statusOnline: "Service online",
     statusOffline: "Service unavailable",
     statusChecking: "Checking…",
+    peopleOnline_one: "{{count}} on site",
+    peopleOnline_other: "{{count}} on site",
   },
   notFound: {
     titleLine1: "That signal",

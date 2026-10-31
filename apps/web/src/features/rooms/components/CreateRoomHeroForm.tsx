@@ -5,12 +5,14 @@ import { useTranslation } from "react-i18next";
 import { ArrowUpRight } from "lucide-react";
 import { Button, Input } from "@v0xlive/ui";
 import { healthApi } from "@/lib/api";
+import { useOnlineStats } from "@/hooks/useOnlineStats";
 import {
   homeCreateCard,
   homeCreateFoot,
   homeCreateLabel,
   homeCreateSubmit,
   homeCreateTitle,
+  homeOnlinePulse,
   statusOffline,
   statusOnline,
 } from "@/ui";
@@ -25,6 +27,7 @@ export function CreateRoomHeroForm() {
     queryFn: () => healthApi.check(),
     retry: false,
   });
+  const online = useOnlineStats();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,11 +35,16 @@ export function CreateRoomHeroForm() {
     if (trimmed) navigate(`/dashboard?create=${encodeURIComponent(trimmed)}`);
   }
 
-  const statusLabel = health.isSuccess
+  const serviceLabel = health.isSuccess
     ? t("createRoom.statusOnline")
     : health.isError
       ? t("createRoom.statusOffline")
       : t("createRoom.statusChecking");
+
+  const peopleLabel =
+    online.isSuccess && online.data.online >= 0
+      ? t("createRoom.peopleOnline", { count: online.data.online })
+      : null;
 
   return (
     <form onSubmit={handleSubmit} className={homeCreateCard}>
@@ -58,10 +66,24 @@ export function CreateRoomHeroForm() {
       <p className={homeCreateFoot}>
         <span>{t("createRoom.footGuest")}</span>
         <span
-          className={cn(health.isSuccess ? statusOnline : statusOffline)}
+          className={cn(
+            "inline-flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-right",
+            health.isSuccess ? statusOnline : statusOffline,
+          )}
           role="status"
         >
-          {statusLabel}
+          {peopleLabel ? (
+            <>
+              <span className="inline-flex items-center gap-1.5">
+                <span className={homeOnlinePulse} aria-hidden="true" />
+                {peopleLabel}
+              </span>
+              <span className="text-muted" aria-hidden="true">
+                ·
+              </span>
+            </>
+          ) : null}
+          <span>{serviceLabel}</span>
         </span>
       </p>
     </form>

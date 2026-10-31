@@ -37,6 +37,12 @@ export const homeLead =
 export const homeHeroLinks =
   "home-hero-links mt-[30px] flex flex-wrap items-center gap-x-[22px] gap-y-3.5";
 
+export const homeOnlineNow =
+  "home-online-now mb-0 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-[clamp(28px,4.5vw,52px)] py-3 text-[11px] uppercase tracking-[0.08em] text-muted max-[900px]:px-[clamp(28px,4.5vw,52px)] [&_.home-cell-code]:mb-0";
+
+export const homeOnlinePulse =
+  "home-online-pulse size-1.5 shrink-0 rounded-full bg-current shadow-[0_0_8px_currentColor]";
+
 export const homeSteps = "bg-background";
 export const homeStepList =
   "home-step-list m-0 grid list-none grid-cols-3 gap-0 border-t border-border p-0 max-[900px]:grid-cols-1";

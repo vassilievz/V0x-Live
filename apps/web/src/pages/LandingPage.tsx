@@ -4,10 +4,12 @@ import { ArrowUpRight } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { CreateRoomHeroForm } from "@/features/rooms/components/CreateRoomHeroForm";
 import { HeroKnightArt } from "@/components/landing/HeroKnightArt";
+import { OnlineCountLabel } from "@/components/landing/OnlineCountLabel";
 import { AboutSculptureArt } from "@/components/landing/AboutSculptureArt";
 import { HighlightHalftoneCell } from "@/components/background/HighlightHalftoneCell";
 import { StepHalftoneCell } from "@/components/background/StepHalftoneCell";
 import { BentoShell } from "@/components/layout/BentoShell";
+import { useLandingMetaBar } from "@/hooks/useLandingMetaBar";
 import { Reveal } from "@/motion/Reveal";
 import { easeOut } from "@/motion/presets";
 import { cn } from "@/lib/cn";
@@ -59,9 +61,10 @@ const FAQ_KEYS = ["free", "install", "mobile"] as const;
 export function LandingPage() {
   const reduced = useReducedMotion();
   const { t } = useTranslation();
+  const landingMeta = useLandingMetaBar();
 
   return (
-    <BentoShell showMetaBar>
+    <BentoShell showMetaBar meta={landingMeta}>
         <section className={cn(homeHero, homeBentoPanel)} aria-labelledby="home-title">
           <HeroKnightArt />
           <div className={homeHeroInner}>
@@ -76,6 +79,7 @@ export function LandingPage() {
                   <span className={cn(homeCellCode, "mb-0")}>HL-00</span>
                   {t("landing.hero.kicker")}
                 </p>
+                <OnlineCountLabel className="mb-[18px] mt-[-6px]" />
                 <h1 id="home-title" className={homeHeroTitle}>
                   <Trans
                     i18nKey="landing.hero.title"

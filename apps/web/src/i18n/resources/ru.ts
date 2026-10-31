@@ -74,6 +74,13 @@ export const ru = {
       lead:
         "Делитесь экраном, голосом и чатом с приглашёнными. Без установки — прямо в браузере.",
       publicRooms: "Публичные комнаты",
+      onlineNow_one: "{{count}} человек онлайн",
+      onlineNow_other: "{{count}} человек онлайн",
+      onlineLoading: "Считаем, кто онлайн…",
+    },
+    meta: {
+      onlineNow_one: "{{count}} онлайн",
+      onlineNow_other: "{{count}} онлайн",
     },
     steps: {
       title: "От экрана к комнате за три шага",
@@ -140,6 +147,8 @@ export const ru = {
     statusOnline: "Сервис доступен",
     statusOffline: "Сервис недоступен",
     statusChecking: "Проверка…",
+    peopleOnline_one: "{{count}} на сайте",
+    peopleOnline_other: "{{count}} на сайте",
   },
   notFound: {
     titleLine1: "Этот сигнал",

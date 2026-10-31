@@ -82,6 +82,8 @@ export function createHealthApi(client: ReturnType<typeof createApiClient>) {
 }
 
 export { createAuthApi, createRoomsApi, DEFAULT_GUEST_DISPLAY_NAME, DEFAULT_GUEST_AVATAR_URL, resolveGuestAvatar, publicRoomCoverPath } from "./auth";
+export { createStatsApi, createPresenceApi } from "./stats";
+export type { OnlineStatsResponse } from "./stats";
 export type {
   AuthUser,
   RoomSummary,

@@ -73,6 +73,13 @@ export const pt = {
       lead:
         "Compartilhe tela, voz e chat com quem você convidar. Sem download, direto no navegador.",
       publicRooms: "Ver salas públicas",
+      onlineNow_one: "{{count}} pessoa online agora",
+      onlineNow_other: "{{count}} pessoas online agora",
+      onlineLoading: "Contando quem está online…",
+    },
+    meta: {
+      onlineNow_one: "{{count}} online agora",
+      onlineNow_other: "{{count}} online agora",
     },
     steps: {
       title: "Da sua tela para a sala, em três passos",
@@ -139,6 +146,8 @@ export const pt = {
     statusOnline: "Serviço online",
     statusOffline: "Serviço indisponível",
     statusChecking: "Verificando…",
+    peopleOnline_one: "{{count}} pessoa no site",
+    peopleOnline_other: "{{count}} pessoas no site",
   },
   notFound: {
     titleLine1: "Esse sinal",
