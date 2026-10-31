@@ -19,23 +19,23 @@ export {
 export const homeContentLock = "home-content-lock";
 
 export const homeHero =
-  "home-hero relative min-h-[clamp(520px,58vh,680px)] overflow-hidden bg-background max-[900px]:min-h-[clamp(560px,88vh,760px)]";
+  "home-hero relative min-h-[clamp(520px,58vh,680px)] overflow-hidden bg-background";
 export const homeHeroInner = "relative z-[3] h-full";
 export const homeHeroGrid =
-  "grid min-h-[clamp(480px,54vh,640px)] grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] items-stretch bg-transparent max-[900px]:min-h-0 max-[900px]:grid-cols-1";
+  "home-hero-grid grid min-h-[clamp(480px,54vh,640px)] grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] items-stretch bg-transparent max-[900px]:min-h-0 max-[900px]:grid-cols-1";
 export const homeHeroCopy =
-  "relative z-[3] flex max-w-[40rem] flex-col justify-center p-[clamp(28px,4.5vw,52px)] max-[900px]:border-b max-[900px]:border-border";
+  "home-hero-copy relative z-[3] flex max-w-[40rem] flex-col justify-center p-[clamp(28px,4.5vw,52px)] max-[900px]:border-b max-[900px]:border-border";
 export const homeHeroFormWrap =
-  "relative z-[3] flex items-center p-[clamp(28px,4.5vw,52px)]";
+  "home-hero-form-wrap relative z-[3] flex items-center p-[clamp(28px,4.5vw,52px)]";
 export const homeKicker =
   "mb-[22px] flex flex-wrap items-center gap-x-3.5 gap-y-2.5 text-[11px] uppercase tracking-[0.08em] text-muted [&_.home-cell-code]:mb-0";
 export const homeHeroTitle =
-  "font-display max-w-[11ch] text-[clamp(2.6rem,5.8vw,4.25rem)] font-bold leading-[0.98] tracking-[-0.04em]";
+  "home-hero-title font-display max-w-[11ch] text-[clamp(2.6rem,5.8vw,4.25rem)] font-bold leading-[0.98] tracking-[-0.04em]";
 export const homeAccentWord = "text-accent";
 export const homeLead =
-  "mt-[22px] max-w-[34rem] text-[clamp(1rem,1.5vw,1.125rem)] leading-relaxed text-muted";
+  "home-lead mt-[22px] max-w-[34rem] text-[clamp(1rem,1.5vw,1.125rem)] leading-relaxed text-muted";
 export const homeHeroLinks =
-  "mt-[30px] flex flex-wrap items-center gap-x-[22px] gap-y-3.5";
+  "home-hero-links mt-[30px] flex flex-wrap items-center gap-x-[22px] gap-y-3.5";
 
 export const homeSteps = "bg-background";
 export const homeStepList =
@@ -57,13 +57,13 @@ export const homeHighlightCellInner = "home-highlight-cell__inner";
 
 export const homeAbout = "bg-background";
 export const homeAboutLayout =
-  "grid min-h-[clamp(380px,44vw,520px)] grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-stretch gap-0 border-t border-border max-[900px]:min-h-0 max-[900px]:grid-cols-1";
+  "home-about-layout grid min-h-[clamp(380px,44vw,520px)] grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] items-stretch gap-0 border-t border-border max-[900px]:min-h-0 max-[900px]:grid-cols-1";
 export const homeAboutCopy =
-  "flex max-w-[40rem] flex-col justify-center border-r border-border px-[var(--bento-pad-x)] py-[var(--bento-pad-y)] max-[900px]:border-b max-[900px]:border-r-0 [&_.home-cell-code]:mb-4 [&_.action-link]:mt-6";
+  "home-about-copy flex max-w-[40rem] flex-col justify-center border-r border-border px-[var(--bento-pad-x)] py-[var(--bento-pad-y)] max-[900px]:border-b max-[900px]:border-r-0 [&_.home-cell-code]:mb-4 [&_.action-link]:mt-6";
 export const homeAboutText =
   "mt-[18px] max-w-[40rem] text-[0.9375rem] leading-[1.7] text-muted";
 export const homeAboutArt =
-  "relative h-full min-h-full w-full overflow-hidden bg-background max-[900px]:h-auto max-[900px]:min-h-[clamp(320px,62vw,440px)]";
+  "home-about-art relative h-full min-h-full w-full overflow-hidden bg-background max-[900px]:h-auto max-[900px]:min-h-[clamp(320px,62vw,440px)]";
 export const homeAboutArtImage =
   "absolute inset-0 block h-full w-full object-cover object-[center_32%]";
 export const homeAboutArtImageGif =
@@ -75,7 +75,7 @@ export const homeFaqItem = "home-faq-item border-b border-border";
 export const homeFaqBody = "home-faq-body";
 
 export const homeCreateCard =
-  "relative z-[1] grid w-full gap-0 rounded-lg border border-border bg-[rgb(0_0_0/0.72)] p-[clamp(22px,3vw,28px)]";
+  "home-create-card relative z-[1] grid w-full gap-0 rounded-lg border border-border bg-[rgb(0_0_0/0.72)] p-[clamp(22px,3vw,28px)]";
 export const homeCreateLabel =
   "mb-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted";
 export const homeCreateTitle =

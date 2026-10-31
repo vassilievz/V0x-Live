@@ -12,5 +12,6 @@
 @import "./effects/hero-art.css";
 @import "./effects/media-gif.css";
 @import "./effects/room-app.css";
+@import "./marketing/home-mobile.css";
 
 @source "../../../../packages/ui/src";
