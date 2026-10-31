@@ -37,4 +37,5 @@ logging:
   level: info
 EOF
 
-exec livekit-server --config /tmp/livekit.yaml --bind "0.0.0.0"
+# Binário na imagem oficial: /livekit-server (ver Dockerfile upstream LiveKit)
+exec /livekit-server --config /tmp/livekit.yaml
