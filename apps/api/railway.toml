@@ -1,8 +1,15 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "apps/api/Dockerfile"
+watchPatterns = [
+  "apps/api/**",
+  "package.json",
+]
 
 [deploy]
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
+
+# Builder Dockerfile — não usar Railpack/Nixpacks neste serviço.
+# Painel: Settings → Config-as-code → apps/api/railway.toml

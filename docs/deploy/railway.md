@@ -3,6 +3,8 @@
 Produção: **`live.v0x.lol`** (web) · **`apilive.v0x.lol`** (API) · **`lklive.v0x.lol`** (LiveKit).  
 Valores prontos para colar: **`.env.railway`** (gitignored). Detalhe DNS: [`domains.md`](domains.md).
 
+**Erro Railpack “No start command”?** → [`railway-services.md`](railway-services.md) (3 serviços + Dockerfile, não Node na raiz).
+
 ## Ordem recomendada
 
 1. Criar **project** Railway + ligar o repo GitHub (deploy automático).
@@ -15,6 +17,8 @@ Valores prontos para colar: **`.env.railway`** (gitignored). Detalhe DNS: [`doma
 | **Web** | `apps/web/railway.toml` → `infrastructure/docker/Dockerfile.web` | `live.v0x.lol` |
 | **LiveKit** | `infrastructure/livekit/railway.toml` → `infrastructure/docker/Dockerfile.livekit` | `lklive.v0x.lol` |
 | **Redis** | Plugin (sem Dockerfile) | — |
+
+Detalhe config-as-code: [`railway-services.md`](railway-services.md).
 
 4. Em cada serviço: **Settings → Custom Domain** → CNAME no DNS conforme a Railway indicar.
 5. Colar variáveis de **`.env.railway`** (bloco por serviço).

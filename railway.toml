@@ -1,0 +1,12 @@
+# Não use Railpack na raiz do monorepo.
+# Crie 3 serviços Railway e aponte cada um ao seu railway.toml (ver docs/deploy/railway-services.md).
+#
+# Se só existir UM serviço ligado ao repo, este ficheiro faz deploy do FRONT (Docker + nginx).
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "infrastructure/docker/Dockerfile.web"
+
+[deploy]
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"

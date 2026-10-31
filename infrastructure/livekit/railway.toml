@@ -1,6 +1,13 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "infrastructure/docker/Dockerfile.livekit"
+watchPatterns = [
+  "infrastructure/docker/Dockerfile.livekit",
+  "infrastructure/docker/livekit-entrypoint.sh",
+]
 
 [deploy]
 restartPolicyType = "ON_FAILURE"
+
+# Variables: REDIS_URL (ou REDISHOST/…), LIVEKIT_KEYS
+# Painel: Settings → Config-as-code → infrastructure/livekit/railway.toml

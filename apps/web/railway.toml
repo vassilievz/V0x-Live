@@ -1,6 +1,19 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "infrastructure/docker/Dockerfile.web"
+watchPatterns = [
+  "apps/web/**",
+  "packages/**",
+  "infrastructure/docker/Dockerfile.web",
+  "infrastructure/nginx/**",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+]
 
 [deploy]
+healthcheckPath = "/"
 restartPolicyType = "ON_FAILURE"
+
+# Build args vêm das Variables do serviço (VITE_API_URL, VITE_WS_URL, VITE_LIVEKIT_URL).
+# Painel: Settings → Config-as-code → apps/web/railway.toml

@@ -31,7 +31,7 @@ Redis + LiveKit via Docker: `docker compose up -d` (requer Docker).
 
 Produção: **live.v0x.lol** (front) · **apilive.v0x.lol** (API) · **lklive.v0x.lol** (LiveKit).
 
-Guia: [`docs/deploy/railway.md`](docs/deploy/railway.md) · variáveis: `.env.railway` · DNS: [`docs/deploy/domains.md`](docs/deploy/domains.md).
+Guia: [`docs/deploy/railway.md`](docs/deploy/railway.md) · serviços/build: [`docs/deploy/railway-services.md`](docs/deploy/railway-services.md) · variáveis: `.env.railway`
 
 ## Licença
 
