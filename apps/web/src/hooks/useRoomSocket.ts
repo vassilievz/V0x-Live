@@ -61,7 +61,12 @@ export function useRoomSocket(roomId: string | undefined, enabled: boolean) {
 
     return () => {
       cancelled = true;
-      wsRef.current?.close();
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close(1000, "navigate_away");
+      } else {
+        ws?.close();
+      }
     };
   }, [roomId, enabled]);
 

@@ -13,6 +13,7 @@ import { soundEffects } from "@/utils/soundEffects";
 import { RoomEntryLoading } from "@/features/rooms/components/RoomEntryLoading";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
+import { useRoomPageUnloadLeave } from "@/hooks/useRoomPageUnloadLeave";
 import { LiveKitStage } from "@/features/streaming/components/LiveKitStage";
 import { RoomDirectVideoProvider } from "@/features/room-music/RoomDirectVideoContext";
 import { RoomCineProvider } from "@/features/room-cine/RoomCineContext";
@@ -59,12 +60,12 @@ export function RoomPage() {
   const prejoinApplied = useRef(false);
   const joinedRef = useRef(false);
 
-  const session = useSessionUser({ bootstrapGuest: false });
+  const session = useSessionUser({ bootstrapGuest: true });
 
   const entry = useQuery({
     queryKey: ["room-entry", roomId],
     queryFn: () => roomsApi.entry(roomId!),
-    enabled: Boolean(roomId) && session.isSuccess,
+    enabled: Boolean(roomId) && session.isFetched,
     staleTime: 0,
   });
 
@@ -146,12 +147,23 @@ export function RoomPage() {
     staleTime: 0,
   });
 
+  const cachedLivekit = roomId
+    ? queryClient.getQueryData<LiveKitTokenResponse>(["livekit", roomId])
+    : undefined;
+
   const livekit = useQuery({
     queryKey: ["livekit", roomId],
     queryFn: () => roomsApi.livekitToken(roomId!),
-    enabled: !!roomId && joined,
+    enabled: !!roomId && joined && !cachedLivekit,
     retry: 2,
   });
+
+  const livekitSession =
+    livekit.data ??
+    cachedLivekit ??
+    (join.data?.livekit
+      ? { token: join.data.livekit.token, url: join.data.livekit.url }
+      : undefined);
 
   const hostRoomDetails = useQuery({
     queryKey: ["room", roomId, "host-details"],
@@ -161,6 +173,7 @@ export function RoomPage() {
   });
 
   const { connected, lastEvent } = useRoomSocket(roomId, joined);
+  useRoomPageUnloadLeave(roomId, joined);
 
   useEffect(() => {
     if (lastEvent?.type !== "room.participant.joined") {
@@ -223,12 +236,14 @@ export function RoomPage() {
   }
 
   const roomName = entryInfo?.name ?? roomMeta.data?.name ?? t("room.defaultName");
-  const authReady = session.isFetched;
   const isPublicRoom = entryInfo?.visibility === "public";
   const metaReady =
-    !isPublicRoom || Boolean(roomMeta.data) || roomMeta.isError;
-  const entryReady = !hasSession || entry.isFetched;
-  const waitingSession = !authReady || !metaReady || !entryReady;
+    !isPublicRoom ||
+    Boolean(entryInfo) ||
+    Boolean(roomMeta.data) ||
+    roomMeta.isError;
+  const entryReady = session.isFetched;
+  const waitingSession = !joined && !entryReady;
   const needsInviteGate = entryInfo ? needsRoomInviteGate(entryInfo) : false;
   const needsNickGate = entryInfo
     ? needsNickEntryGate(entryInfo, session.data, hasSession)
@@ -285,10 +300,6 @@ export function RoomPage() {
       <RoomEntryLoading message={join.isPending ? t("room.joining") : t("room.loading")} />
     );
   }
-
-  const livekitSession =
-    livekit.data ??
-    queryClient.getQueryData<LiveKitTokenResponse>(["livekit", roomId]);
 
   return (
     <div className={roomAppRoot}>

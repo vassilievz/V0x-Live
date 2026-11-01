@@ -12,11 +12,12 @@ import (
 	"github.com/v0xlive/v0x-live/apps/api/internal/models"
 )
 
-const emptyRoomJanitorInterval = 3 * time.Minute
+const emptyRoomJanitorInterval = 30 * time.Second
 
-// StartEmptyRoomJanitor periodically deletes active rooms with no active participants.
+// StartEmptyRoomJanitor periodically syncs WS presence and deletes empty rooms.
 func (s *Service) StartEmptyRoomJanitor(ctx context.Context) {
 	go func() {
+		s.runEmptyRoomJanitorPass(context.Background())
 		ticker := time.NewTicker(emptyRoomJanitorInterval)
 		defer ticker.Stop()
 		for {
@@ -31,6 +32,9 @@ func (s *Service) StartEmptyRoomJanitor(ctx context.Context) {
 }
 
 func (s *Service) runEmptyRoomJanitorPass(ctx context.Context) {
+	if s.presence != nil {
+		s.presence.SyncWithHub(ctx)
+	}
 	cur, err := s.rooms.Find(ctx, bson.M{
 		"status": models.StatusActive,
 	}, options.Find().SetProjection(bson.M{"_id": 1}).SetLimit(200))

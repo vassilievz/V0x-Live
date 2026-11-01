@@ -601,6 +601,10 @@ func (h *Handler) publishParticipantJoined(ctx context.Context, roomID, displayN
 	})
 }
 
+func (h *Handler) PublishRoomClosed(ctx context.Context, roomID primitive.ObjectID) {
+	h.publishRoomClosed(ctx, roomID)
+}
+
 func (h *Handler) publishRoomClosed(ctx context.Context, roomID primitive.ObjectID) {
 	h.hub.Publish(ctx, roomID.Hex(), realtime.EventRoomClosed, map[string]string{
 		"room_id": roomID.Hex(),

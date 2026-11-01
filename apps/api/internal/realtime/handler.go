@@ -66,6 +66,6 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := NewClient(h.hub, roomID, conn)
+	client := NewClient(h.hub, roomID, sess.ID, conn)
 	client.Run(r.Context())
 }

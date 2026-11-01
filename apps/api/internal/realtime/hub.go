@@ -8,8 +8,9 @@ import (
 )
 
 type Hub struct {
-	mu    sync.RWMutex
-	rooms map[string]map[*Client]struct{}
+	mu       sync.RWMutex
+	rooms    map[string]map[*Client]struct{}
+	handlers sessionHandlers
 }
 
 func NewHub() *Hub {
@@ -17,23 +18,12 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Register(roomID string, c *Client) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if h.rooms[roomID] == nil {
-		h.rooms[roomID] = make(map[*Client]struct{})
-	}
-	h.rooms[roomID][c] = struct{}{}
+	h.registerClient(roomID, c)
 }
 
 func (h *Hub) Unregister(roomID string, c *Client) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if clients, ok := h.rooms[roomID]; ok {
-		delete(clients, c)
-		if len(clients) == 0 {
-			delete(h.rooms, roomID)
-		}
-	}
+	_ = roomID
+	h.unregisterClient(c)
 }
 
 func (h *Hub) Broadcast(roomID string, event Event) {

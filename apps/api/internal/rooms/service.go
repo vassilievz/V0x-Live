@@ -45,6 +45,7 @@ type Service struct {
 	chatMessages *mongo.Collection
 	roomMusic    *mongo.Collection
 	roomCine     *mongo.Collection
+	presence     *RealtimePresence
 }
 
 func NewService(store *database.Store) *Service {
@@ -57,6 +58,10 @@ func NewService(store *database.Store) *Service {
 		roomMusic:    store.Collection("room_music"),
 		roomCine:     store.Collection("room_cine"),
 	}
+}
+
+func (s *Service) SetRealtimePresence(p *RealtimePresence) {
+	s.presence = p
 }
 
 type PublicRoomItem struct {
@@ -98,7 +103,11 @@ func (s *Service) ListPublic(ctx context.Context) ([]PublicRoomItem, error) {
 		if err != nil {
 			return nil, err
 		}
-		if count == 0 {
+		displayCount := int(count)
+		if s.presence != nil {
+			displayCount = s.presence.PublicParticipantCount(room.ID.Hex(), room.CreatedAt, count)
+		}
+		if displayCount == 0 {
 			continue
 		}
 		hasPreview := previewFresh(room.PreviewUpdatedAt, room.PreviewJPEG)
@@ -106,7 +115,7 @@ func (s *Service) ListPublic(ctx context.Context) ([]PublicRoomItem, error) {
 			ID:               room.ID.Hex(),
 			Name:             room.Name,
 			Description:      room.Description,
-			ParticipantCount: int(count),
+			ParticipantCount: displayCount,
 			IsLive:           room.BroadcastActive,
 			HasPreview:       hasPreview,
 		})
@@ -374,6 +383,9 @@ func (s *Service) joinRoom(ctx context.Context, room models.Room, sess session.S
 }
 
 func (s *Service) Leave(ctx context.Context, roomID primitive.ObjectID, sess session.Session) (bool, error) {
+	if s.presence != nil {
+		s.presence.OnExplicitLeave(roomID.Hex(), sess.ID)
+	}
 	now := time.Now().UTC()
 	res, err := s.participants.UpdateOne(ctx, bson.M{
 		"room_id":    roomID,
@@ -387,6 +399,41 @@ func (s *Service) Leave(ctx context.Context, roomID primitive.ObjectID, sess ses
 		return false, ErrNotFound
 	}
 	return s.tryDeleteRoomIfEmpty(ctx, roomID)
+}
+
+func (s *Service) LeaveBySessionID(ctx context.Context, roomID, sessionID primitive.ObjectID) (bool, error) {
+	now := time.Now().UTC()
+	res, err := s.participants.UpdateOne(ctx, bson.M{
+		"room_id":    roomID,
+		"session_id": sessionID,
+		"left_at":    nil,
+	}, bson.M{"$set": bson.M{"left_at": now}})
+	if err != nil {
+		return false, err
+	}
+	if res.MatchedCount == 0 {
+		return false, nil
+	}
+	return s.tryDeleteRoomIfEmpty(ctx, roomID)
+}
+
+func (s *Service) ListActiveRooms(ctx context.Context, limit int64) ([]models.Room, error) {
+	cur, err := s.rooms.Find(ctx, bson.M{
+		"status": models.StatusActive,
+	}, options.Find().SetLimit(limit))
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	out := make([]models.Room, 0)
+	for cur.Next(ctx) {
+		var room models.Room
+		if err := cur.Decode(&room); err != nil {
+			return nil, err
+		}
+		out = append(out, room)
+	}
+	return out, cur.Err()
 }
 
 func (s *Service) Close(ctx context.Context, roomID primitive.ObjectID, sess session.Session) error {

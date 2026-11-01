@@ -5,29 +5,32 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
 	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
+	pongWait       = 15 * time.Second
+	pingPeriod     = 10 * time.Second
 	maxMessageSize = 4096
 	sendBuffer     = 64
 )
 
 type Client struct {
-	hub    *Hub
-	roomID string
-	conn   *websocket.Conn
-	send   chan []byte
+	hub       *Hub
+	roomID    string
+	sessionID primitive.ObjectID
+	conn      *websocket.Conn
+	send      chan []byte
 }
 
-func NewClient(hub *Hub, roomID string, conn *websocket.Conn) *Client {
+func NewClient(hub *Hub, roomID string, sessionID primitive.ObjectID, conn *websocket.Conn) *Client {
 	return &Client{
-		hub:    hub,
-		roomID: roomID,
-		conn:   conn,
-		send:   make(chan []byte, sendBuffer),
+		hub:       hub,
+		roomID:    roomID,
+		sessionID: sessionID,
+		conn:      conn,
+		send:      make(chan []byte, sendBuffer),
 	}
 }
 

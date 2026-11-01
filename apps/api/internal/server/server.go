@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/v0xlive/v0x-live/apps/api/internal/auth"
 	"github.com/v0xlive/v0x-live/apps/api/internal/auth/session"
@@ -37,10 +38,23 @@ func New(cfg config.Config, store *database.Store) *Server {
 	sessions := session.NewManager(store, cfg.SessionCookieName, cfg.SessionCookieDomain, cfg.SessionMaxAge, cfg.SecureCookies())
 	hub := realtime.NewHub()
 	roomSvc := rooms.NewService(store)
+	roomHandler := rooms.NewHandler(roomSvc, hub, cfg)
+	wsPresence := rooms.NewRealtimePresence(
+		roomSvc,
+		hub,
+		func(ctx context.Context, roomID, sessionID string) {
+			hub.Publish(ctx, roomID, realtime.EventParticipantLeft, map[string]string{
+				"session_id": sessionID,
+			})
+		},
+		func(ctx context.Context, roomID primitive.ObjectID) {
+			roomHandler.PublishRoomClosed(ctx, roomID)
+		},
+	)
+	roomSvc.SetRealtimePresence(wsPresence)
 	roomSvc.StartEmptyRoomJanitor(context.Background())
 
 	authHandler := auth.NewHandler(sessions, roomSvc, auth.NewUserRepository(store.Collection("users")), cfg)
-	roomHandler := rooms.NewHandler(roomSvc, hub, cfg)
 	chatHandler := chat.NewHandler(store, roomSvc, hub)
 	musicHandler := music.NewHandler(store, roomSvc, hub)
 	cineCatalogSvc := cine.NewCatalogService()
