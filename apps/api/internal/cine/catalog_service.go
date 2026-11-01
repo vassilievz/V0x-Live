@@ -101,7 +101,15 @@ func (s *CatalogService) loadBrowseCatalog(ctx context.Context, inv *redeflixInv
 	case ContentFilme:
 		return s.movieItemsFromCinemetaTop(ctx, inv, 48)
 	case ContentSerie, ContentAnime, ContentDorama:
-		return seriesEntriesToDTO(filterSeriesEntries(inv.seriesSlice(category), "")), nil
+		base := seriesEntriesToDTO(filterSeriesEntries(inv.seriesSlice(category), ""))
+		items, err := s.seriesItemsFromCinemetaTop(ctx, inv, category, 48)
+		if err != nil || len(items) == 0 {
+			return s.attachSeriesPosters(ctx, base), nil
+		}
+		if len(items) < 24 {
+			items = mergeSeriesCatalogItems(items, s.attachSeriesPosters(ctx, base))
+		}
+		return items, nil
 	case "all":
 		var items []CatalogItemDTO
 		movies, err := s.movieItemsFromCinemetaTop(ctx, inv, 24)
@@ -126,15 +134,223 @@ func (s *CatalogService) searchCatalog(ctx context.Context, inv *redeflixInvento
 
 	switch category {
 	case ContentSerie, ContentAnime, ContentDorama:
-		items = append(items, seriesEntriesToDTO(filterSeriesEntries(inv.seriesSlice(category), search))...)
+		cinemetaItems, _ := s.searchSeriesViaCinemeta(ctx, inv, category, search)
+		inventoryItems := s.attachSeriesPosters(ctx, seriesEntriesToDTO(filterSeriesEntries(inv.seriesSlice(category), search)))
+		items = append(items, mergeSeriesCatalogItems(cinemetaItems, inventoryItems)...)
 	case "all":
-		items = append(items, seriesEntriesToDTO(filterSeriesEntries(inv.tv, search))...)
-		items = append(items, seriesEntriesToDTO(filterSeriesEntries(inv.anime, search))...)
-		items = append(items, seriesEntriesToDTO(filterSeriesEntries(inv.dorama, search))...)
+		items = append(items, s.attachSeriesPosters(ctx, seriesEntriesToDTO(filterSeriesEntries(inv.tv, search)))...)
+		items = append(items, s.attachSeriesPosters(ctx, seriesEntriesToDTO(filterSeriesEntries(inv.anime, search)))...)
+		items = append(items, s.attachSeriesPosters(ctx, seriesEntriesToDTO(filterSeriesEntries(inv.dorama, search)))...)
 	}
 
 	items = dedupeCatalogItems(items)
 	return items, nil
+}
+
+func (s *CatalogService) seriesItemsFromCinemetaTop(ctx context.Context, inv *redeflixInventory, kind string, limit int) ([]CatalogItemDTO, error) {
+	body, err := s.fetchGET(ctx, cinemetaSeriesTop)
+	if err != nil {
+		return nil, err
+	}
+	var payload cinemetaCatalogPayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, err
+	}
+	items := make([]CatalogItemDTO, 0, limit)
+	for _, m := range payload.Metas {
+		it, ok := s.cinemetaMetaToSeriesItem(ctx, inv, m, kind)
+		if !ok {
+			continue
+		}
+		items = append(items, it)
+		if len(items) >= limit {
+			break
+		}
+	}
+	return items, nil
+}
+
+func (s *CatalogService) searchSeriesViaCinemeta(ctx context.Context, inv *redeflixInventory, kind, search string) ([]CatalogItemDTO, error) {
+	search = strings.TrimSpace(search)
+	if search == "" {
+		return nil, nil
+	}
+	encoded := url.PathEscape(search)
+	u := fmt.Sprintf(cinemetaSeriesSearch, encoded)
+	body, err := s.fetchGET(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+	var payload cinemetaCatalogPayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, err
+	}
+	items := make([]CatalogItemDTO, 0, len(payload.Metas))
+	for _, m := range payload.Metas {
+		it, ok := s.cinemetaMetaToSeriesItem(ctx, inv, m, kind)
+		if ok {
+			items = append(items, it)
+		}
+	}
+	return items, nil
+}
+
+func (s *CatalogService) cinemetaMetaToSeriesItem(ctx context.Context, inv *redeflixInventory, m cinemetaMeta, kind string) (CatalogItemDTO, bool) {
+	imdbID := strings.TrimSpace(m.ID)
+	if !strings.HasPrefix(imdbID, "tt") {
+		return CatalogItemDTO{}, false
+	}
+	tmdbID, err := s.tmdbIDFromCinemetaSeries(ctx, imdbID)
+	if err != nil || tmdbID < 1 {
+		return CatalogItemDTO{}, false
+	}
+	entry, ok := inv.byTMDB[tmdbID]
+	if !ok || entry.Kind != kind {
+		return CatalogItemDTO{}, false
+	}
+	year, _ := strconv.Atoi(strings.TrimSpace(m.Year))
+	if year < 1 && entry.Ano > 0 {
+		year = entry.Ano
+	}
+	title := strings.TrimSpace(m.Name)
+	if title == "" {
+		title = entry.Nome
+	}
+	return CatalogItemDTO{
+		IMDBID:     imdbID,
+		MediaID:    strconv.Itoa(tmdbID),
+		Title:      title,
+		Year:       year,
+		Type:       kind,
+		Poster:     strings.TrimSpace(m.Poster),
+		IMDBRating: strings.TrimSpace(m.IMDBRating),
+	}, true
+}
+
+const tmdbImageBase = "https://image.tmdb.org/t/p/w500"
+
+func (s *CatalogService) attachSeriesPosters(ctx context.Context, items []CatalogItemDTO) []CatalogItemDTO {
+	if len(items) == 0 {
+		return items
+	}
+	index, _ := s.cinemetaSeriesPosterIndex(ctx)
+	out := make([]CatalogItemDTO, len(items))
+	for i, it := range items {
+		out[i] = it
+		if strings.TrimSpace(it.Poster) != "" {
+			continue
+		}
+		tmdbID, err := strconv.Atoi(strings.TrimSpace(it.MediaID))
+		if err != nil || tmdbID < 1 {
+			continue
+		}
+		if poster := index[tmdbID]; poster != "" {
+			out[i].Poster = poster
+			continue
+		}
+		if s.tmdbKey != "" {
+			if poster, err := s.tmdbTVPosterURL(ctx, tmdbID); err == nil {
+				out[i].Poster = poster
+			}
+		}
+	}
+	return out
+}
+
+func (s *CatalogService) cinemetaSeriesPosterIndex(ctx context.Context) (map[int]string, error) {
+	const cacheKey = "cinemeta:series:poster-index"
+	if v, ok := s.cache.get(cacheKey); ok {
+		if idx, ok := v.(map[int]string); ok {
+			return idx, nil
+		}
+	}
+	body, err := s.fetchGET(ctx, cinemetaSeriesTop)
+	if err != nil {
+		return map[int]string{}, err
+	}
+	var payload cinemetaCatalogPayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return map[int]string{}, err
+	}
+	index := make(map[int]string, len(payload.Metas))
+	for _, m := range payload.Metas {
+		poster := strings.TrimSpace(m.Poster)
+		if poster == "" {
+			continue
+		}
+		imdbID := strings.TrimSpace(m.ID)
+		if !strings.HasPrefix(imdbID, "tt") {
+			continue
+		}
+		tmdbID, err := s.tmdbIDFromCinemetaSeries(ctx, imdbID)
+		if err != nil || tmdbID < 1 {
+			continue
+		}
+		index[tmdbID] = poster
+	}
+	s.cache.set(cacheKey, index)
+	return index, nil
+}
+
+func (s *CatalogService) tmdbTVPosterURL(ctx context.Context, tmdbID int) (string, error) {
+	if s.tmdbKey == "" || tmdbID < 1 {
+		return "", fmt.Errorf("tmdb unavailable")
+	}
+	cacheKey := fmt.Sprintf("tmdb:tv:poster:%d", tmdbID)
+	if v, ok := s.cache.get(cacheKey); ok {
+		if poster, ok := v.(string); ok && poster != "" {
+			return poster, nil
+		}
+	}
+	apiURL := fmt.Sprintf(
+		"https://api.themoviedb.org/3/tv/%d?api_key=%s&language=pt-BR",
+		tmdbID,
+		url.QueryEscape(s.tmdbKey),
+	)
+	body, err := s.fetchGET(ctx, apiURL)
+	if err != nil {
+		return "", err
+	}
+	var detail struct {
+		PosterPath string `json:"poster_path"`
+	}
+	if err := json.Unmarshal(body, &detail); err != nil {
+		return "", err
+	}
+	posterPath := strings.TrimSpace(detail.PosterPath)
+	if posterPath == "" {
+		return "", fmt.Errorf("missing poster_path")
+	}
+	poster := tmdbImageBase + posterPath
+	s.cache.set(cacheKey, poster)
+	return poster, nil
+}
+
+func mergeSeriesCatalogItems(primary, secondary []CatalogItemDTO) []CatalogItemDTO {
+	seen := make(map[string]struct{}, len(primary)+len(secondary))
+	out := make([]CatalogItemDTO, 0, len(primary)+len(secondary))
+	appendUnique := func(list []CatalogItemDTO) {
+		for _, it := range list {
+			key := strings.ToLower(strings.TrimSpace(it.MediaID))
+			if key == "" {
+				key = strings.ToLower(strings.TrimSpace(it.IMDBID))
+			}
+			if key == "" {
+				continue
+			}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, it)
+		}
+	}
+	appendUnique(primary)
+	appendUnique(secondary)
+	if len(out) > 48 {
+		out = out[:48]
+	}
+	return out
 }
 
 func (s *CatalogService) searchMovies(ctx context.Context, inv *redeflixInventory, search string) ([]CatalogItemDTO, error) {
@@ -243,6 +459,14 @@ func (s *CatalogService) GetSeriesMeta(ctx context.Context, imdbID, mediaID stri
 		id, _ := strconv.Atoi(mediaID)
 		if entry, ok := inv.byTMDB[id]; ok {
 			resp := seriesMetaFromEntry(entry, imdbID, "")
+			if strings.TrimSpace(resp.Poster) == "" {
+				enriched := s.attachSeriesPosters(ctx, []CatalogItemDTO{
+					{MediaID: strconv.Itoa(id), Title: entry.Nome, Type: entry.Kind},
+				})
+				if len(enriched) > 0 {
+					resp.Poster = enriched[0].Poster
+				}
+			}
 			s.cache.set(cacheKey, resp)
 			return resp, nil
 		}
