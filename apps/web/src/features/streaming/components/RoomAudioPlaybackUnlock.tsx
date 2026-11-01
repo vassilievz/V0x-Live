@@ -4,9 +4,9 @@ import { Volume2 } from "lucide-react";
 import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
 
-function resumeRemoteMediaElements(root: ParentNode) {
-  root.querySelectorAll("audio,video").forEach((node) => {
-    if (!(node instanceof HTMLMediaElement)) {
+function resumeRemoteAudioElements(root: ParentNode) {
+  root.querySelectorAll("audio").forEach((node) => {
+    if (!(node instanceof HTMLAudioElement)) {
       return;
     }
     node.muted = false;
@@ -31,7 +31,7 @@ export function RoomAudioPlaybackUnlock() {
 
   const unlock = useCallback(async () => {
     await room.startAudio();
-    resumeRemoteMediaElements(document);
+    resumeRemoteAudioElements(document);
   }, [room]);
 
   if (!blocked) {

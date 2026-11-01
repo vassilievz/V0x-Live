@@ -40,7 +40,8 @@ export function BroadcastScreenShareStage({ mainTrack, stripTracks }: Props) {
 
   const isScreenShare =
     isTrackReference(mainTrack) &&
-    mainTrack.publication.source === Track.Source.ScreenShare;
+    mainTrack.publication.source === Track.Source.ScreenShare &&
+    mainTrack.publication.kind === Track.Kind.Video;
   const screenOnly = isScreenShare && stripTracks.length === 0;
 
   useEffect(() => {

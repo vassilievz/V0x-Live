@@ -39,6 +39,14 @@ function sameTrackRef(
   );
 }
 
+function isScreenShareVideoRef(ref: TrackReferenceOrPlaceholder): boolean {
+  return (
+    isTrackReference(ref) &&
+    ref.publication.source === Track.Source.ScreenShare &&
+    ref.publication.kind === Track.Kind.Video
+  );
+}
+
 function mediaTrackIsRenderable(ref: TrackReferenceOrPlaceholder): boolean {
   if (!isTrackReference(ref) || !ref.publication.track) {
     return false;
@@ -76,7 +84,7 @@ function pickHeroTrack(
   tracks: TrackReferenceOrPlaceholder[],
 ): TrackReferenceOrPlaceholder | undefined {
   const live = tracks.filter(isTrackReference).filter(mediaTrackIsRenderable);
-  const screens = live.filter((t) => t.publication.source === Track.Source.ScreenShare);
+  const screens = live.filter(isScreenShareVideoRef);
   if (screens.length > 0) {
     return screens.reduce((best, t) => (screenShareScore(t) > screenShareScore(best) ? t : best));
   }
@@ -88,7 +96,8 @@ function pickBestScreenShare(
 ): TrackReferenceOrPlaceholder | undefined {
   const screens = tracks
     .filter(isTrackReference)
-    .filter((t) => t.publication.source === Track.Source.ScreenShare && t.publication.track);
+    .filter(isScreenShareVideoRef)
+    .filter((t) => t.publication.track);
   if (screens.length === 0) {
     return undefined;
   }
@@ -128,21 +137,20 @@ export function BroadcastStage({ roomId, viewerRole }: { roomId?: string; viewer
     const mainIsScreen =
       mainTrack &&
       isTrackReference(mainTrack) &&
-      mainTrack.publication.source === Track.Source.ScreenShare;
+      mainTrack.publication.source === Track.Source.ScreenShare &&
+      mainTrack.publication.kind === Track.Kind.Video;
     return stripTracks.filter((t) => {
       if (!isTrackReference(t) || !t.publication.track) {
         return false;
       }
-      if (mainIsScreen && t.publication.source === Track.Source.ScreenShare) {
+      if (mainIsScreen && isScreenShareVideoRef(t)) {
         return false;
       }
       return true;
     });
   }, [stripTracks, mainTrack]);
 
-  const screenShareTracks = tracks
-    .filter(isTrackReference)
-    .filter((t) => t.publication.source === Track.Source.ScreenShare && t.publication.track);
+  const screenShareTracks = tracks.filter(isTrackReference).filter(isScreenShareVideoRef);
 
   useEffect(() => {
     const best = pickBestScreenShare(screenShareTracks);

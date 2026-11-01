@@ -18,8 +18,9 @@ export const SCREEN_SHARE_AUDIO_CAPTURE: AudioCaptureOptions = {
 
 /** Defaults applied to every LiveKit room connection in Vox Live. */
 export const LIVEKIT_ROOM_OPTIONS: RoomOptions = {
-  adaptiveStream: true,
-  dynacast: true,
+  /** Off: tab-audio + UI churn can pause remote screen-share video via visibility heuristics. */
+  adaptiveStream: false,
+  dynacast: false,
   /** Room page handles leave via WebSocket + sendBeacon. */
   disconnectOnPageLeave: false,
   audioCaptureDefaults: VOICE_MIC_CAPTURE,

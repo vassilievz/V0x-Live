@@ -11,6 +11,7 @@ import { RoomCoverPublisher } from "@/features/streaming/components/RoomCoverPub
 import { ScreenShareSignals } from "@/features/streaming/components/ScreenShareSignals";
 import { LiveKitConnectionSignals } from "@/features/streaming/components/LiveKitConnectionSignals";
 import { LiveKitParticipantMediaBridge } from "@/features/streaming/components/LiveKitParticipantMediaBridge";
+import { LiveKitScreenShareSubscriptionGuard } from "@/features/streaming/components/LiveKitScreenShareSubscriptionGuard";
 import { LIVEKIT_ROOM_OPTIONS } from "@/features/streaming/livekitRoomConfig";
 import { RoomAudioPlaybackUnlock } from "@/features/streaming/components/RoomAudioPlaybackUnlock";
 
@@ -38,6 +39,7 @@ export function LiveKitStage({ token, serverUrl, roomId, viewerRole, onDisconnec
       className={cn("broadcast-room lk-room-container", roomStageBroadcast)}
     >
       <LiveKitConnectionSignals />
+      <LiveKitScreenShareSubscriptionGuard />
       <LiveKitParticipantMediaBridge />
       <RoomAudioRenderer />
       <RoomAudioPlaybackUnlock />
