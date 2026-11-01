@@ -22,6 +22,12 @@ export function useEnsureGuestSession() {
   const [guestPending, setGuestPending] = useState(false);
 
   useEffect(() => {
+    if (session.isSuccess) {
+      setGuestPending(false);
+    }
+  }, [session.isSuccess]);
+
+  useEffect(() => {
     const cached = queryClient.getQueryData<AuthUser>(["auth", "me"]);
     if (cached && !cached.is_guest) {
       return;
@@ -50,17 +56,10 @@ export function useEnsureGuestSession() {
       return;
     }
 
-    let active = true;
     setGuestPending(true);
     void ensureGuestSession(queryClient).finally(() => {
-      if (active) {
-        setGuestPending(false);
-      }
+      setGuestPending(false);
     });
-
-    return () => {
-      active = false;
-    };
   }, [
     session.isSuccess,
     session.isLoading,
@@ -73,7 +72,6 @@ export function useEnsureGuestSession() {
 
   return {
     ready: session.isSuccess,
-    ensuring:
-      guestPending || (hasSessionCookie() && session.isLoading && !session.isSuccess),
+    ensuring: guestPending || (session.isFetching && !session.isSuccess),
   };
 }
