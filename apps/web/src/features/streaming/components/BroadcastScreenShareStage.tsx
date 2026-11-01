@@ -64,23 +64,10 @@ export function BroadcastScreenShareStage({ mainTrack, stripTracks }: Props) {
     </button>
   ) : null;
 
-  if (screenOnly) {
-    return (
-      <div
-        ref={shellRef}
-        className={cn(
-          "broadcast-screen-share-shell broadcast-stage-screen-only",
-          fs && "broadcast-screen-share-shell--fs",
-        )}
-      >
-        {fsButton}
-        <ParticipantTile trackRef={mainTrack} className="broadcast-stage-focus" />
-      </div>
-    );
-  }
-
   return (
-    <FocusLayoutContainer className="broadcast-stage-live-layout">
+    <FocusLayoutContainer
+      className={cn("broadcast-stage-live-layout", screenOnly && "broadcast-stage-live-layout--solo")}
+    >
       {stripTracks.length > 0 ? (
         <CarouselLayout tracks={stripTracks}>
           <ParticipantTile />
@@ -91,6 +78,7 @@ export function BroadcastScreenShareStage({ mainTrack, stripTracks }: Props) {
         className={cn(
           "broadcast-screen-share-shell broadcast-stage-focus-wrap",
           isScreenShare && "broadcast-screen-share-shell--hero",
+          screenOnly && "broadcast-stage-screen-only",
           fs && "broadcast-screen-share-shell--fs",
         )}
       >

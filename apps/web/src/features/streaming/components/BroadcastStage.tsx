@@ -24,7 +24,7 @@ import { RoomCineStage } from "@/features/room-cine/components/RoomCineStage";
 import { cineStageReady } from "@/features/room-cine/cineStageReady";
 
 function isLiveTrackRef(ref: TrackReferenceOrPlaceholder | undefined): boolean {
-  return !!ref && isTrackReference(ref) && ref.publication.track != null;
+  return !!ref && mediaTrackIsRenderable(ref);
 }
 
 function sameTrackRef(
@@ -40,15 +40,60 @@ function sameTrackRef(
   );
 }
 
+function mediaTrackIsRenderable(ref: TrackReferenceOrPlaceholder): boolean {
+  if (!isTrackReference(ref) || !ref.publication.track) {
+    return false;
+  }
+  const media = ref.publication.track.mediaStreamTrack;
+  if (media?.readyState === "ended") {
+    return false;
+  }
+  return true;
+}
+
+function screenShareScore(ref: TrackReferenceOrPlaceholder): number {
+  if (!isTrackReference(ref) || !ref.publication.track) {
+    return -1;
+  }
+  let score = 0;
+  if (ref.publication.isSubscribed) {
+    score += 1_000;
+  }
+  if (ref.participant.isLocal) {
+    score += 500;
+  }
+  const media = ref.publication.track.mediaStreamTrack;
+  const settings = media?.getSettings();
+  if (settings?.width && settings?.height) {
+    score += settings.width * settings.height;
+  }
+  if (media?.readyState === "live") {
+    score += 250;
+  }
+  return score;
+}
+
 function pickHeroTrack(
   tracks: TrackReferenceOrPlaceholder[],
 ): TrackReferenceOrPlaceholder | undefined {
-  const live = tracks
-    .filter(isTrackReference)
-    .filter((t) => t.publication.track != null);
-  const screen = live.find((t) => t.publication.source === Track.Source.ScreenShare);
-  if (screen) return screen;
+  const live = tracks.filter(isTrackReference).filter(mediaTrackIsRenderable);
+  const screens = live.filter((t) => t.publication.source === Track.Source.ScreenShare);
+  if (screens.length > 0) {
+    return screens.reduce((best, t) => (screenShareScore(t) > screenShareScore(best) ? t : best));
+  }
   return live.find((t) => t.publication.source === Track.Source.Camera);
+}
+
+function pickBestScreenShare(
+  tracks: TrackReferenceOrPlaceholder[],
+): TrackReferenceOrPlaceholder | undefined {
+  const screens = tracks
+    .filter(isTrackReference)
+    .filter((t) => t.publication.source === Track.Source.ScreenShare && t.publication.track);
+  if (screens.length === 0) {
+    return undefined;
+  }
+  return screens.reduce((best, t) => (screenShareScore(t) > screenShareScore(best) ? t : best));
 }
 
 export function BroadcastStage({ roomId, viewerRole }: { roomId?: string; viewerRole?: string | null }) {
@@ -101,32 +146,21 @@ export function BroadcastStage({ roomId, viewerRole }: { roomId?: string; viewer
     .filter((t) => t.publication.source === Track.Source.ScreenShare && t.publication.track);
 
   useEffect(() => {
-    if (
-      screenShareTracks.length > 0 &&
-      lastScreenShare.current === null &&
-      isTrackReference(screenShareTracks[0])
-    ) {
-      layoutContext.pin.dispatch?.({
-        msg: "set_pin",
-        trackReference: screenShareTracks[0],
-      });
-      lastScreenShare.current = screenShareTracks[0];
+    const best = pickBestScreenShare(screenShareTracks);
+    if (!best || !isTrackReference(best)) {
+      if (lastScreenShare.current) {
+        layoutContext.pin.dispatch?.({ msg: "clear_pin" });
+        lastScreenShare.current = null;
+      }
       return;
     }
 
-    if (
-      lastScreenShare.current &&
-      !screenShareTracks.some(
-        (t) =>
-          isTrackReference(t) &&
-          t.publication.trackSid ===
-            (lastScreenShare.current && isTrackReference(lastScreenShare.current)
-              ? lastScreenShare.current.publication.trackSid
-              : undefined),
-      )
-    ) {
-      layoutContext.pin.dispatch?.({ msg: "clear_pin" });
-      lastScreenShare.current = null;
+    if (!sameTrackRef(lastScreenShare.current ?? undefined, best)) {
+      layoutContext.pin.dispatch?.({
+        msg: "set_pin",
+        trackReference: best,
+      });
+      lastScreenShare.current = best;
     }
   }, [layoutContext.pin, screenShareTracks]);
 
