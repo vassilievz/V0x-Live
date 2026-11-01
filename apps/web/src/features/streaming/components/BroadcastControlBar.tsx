@@ -171,6 +171,27 @@ export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: Broad
       ? t("broadcast.screenStartShort")
       : t("broadcast.screenStart");
 
+  const toggleScreenShare = useCallback(async () => {
+    if (!localParticipant) {
+      return;
+    }
+    try {
+      if (localParticipant.isScreenShareEnabled) {
+        await localParticipant.setScreenShareEnabled(false);
+      } else {
+        await localParticipant.setScreenShareEnabled(
+          true,
+          screenMedia.captureOptions,
+          screenMedia.publishOptions,
+        );
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        onDeviceError?.({ source: Track.Source.ScreenShare, error });
+      }
+    }
+  }, [localParticipant, onDeviceError, screenMedia.captureOptions, screenMedia.publishOptions]);
+
   return (
     <footer className="broadcast-stage-dock" aria-label={t("broadcast.controlsDock")}>
       <div className="broadcast-stage-dock-inner">
@@ -209,17 +230,15 @@ export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: Broad
             ) : null}
             {showScreen ? (
               <div className="broadcast-control-bar-item broadcast-control-bar-item--wide">
-                <TrackToggle
-                  source={Track.Source.ScreenShare}
-                  showIcon
-                  captureOptions={screenMedia.captureOptions}
-                  publishOptions={screenMedia.publishOptions}
-                  onDeviceError={(error) =>
-                    onDeviceError?.({ source: Track.Source.ScreenShare, error })
-                  }
+                <button
+                  type="button"
+                  className="lk-button broadcast-control-bar-btn"
+                  aria-pressed={screenOn}
+                  data-lk-enabled={screenOn ? "true" : undefined}
+                  onClick={() => void toggleScreenShare()}
                 >
                   {screenLabel}
-                </TrackToggle>
+                </button>
               </div>
             ) : null}
             {roomId ? (

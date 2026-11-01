@@ -1,4 +1,4 @@
-import { LiveKitRoom } from "@livekit/components-react";
+import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import "@livekit/components-styles";
 import "@livekit/components-styles/prefabs";
 import "@livekit/components-styles/components/layout";
@@ -12,6 +12,7 @@ import { ScreenShareSignals } from "@/features/streaming/components/ScreenShareS
 import { LiveKitConnectionSignals } from "@/features/streaming/components/LiveKitConnectionSignals";
 import { LiveKitParticipantMediaBridge } from "@/features/streaming/components/LiveKitParticipantMediaBridge";
 import { LIVEKIT_ROOM_OPTIONS } from "@/features/streaming/livekitRoomConfig";
+import { RoomAudioPlaybackUnlock } from "@/features/streaming/components/RoomAudioPlaybackUnlock";
 
 type Props = {
   token: string;
@@ -38,6 +39,8 @@ export function LiveKitStage({ token, serverUrl, roomId, viewerRole, onDisconnec
     >
       <LiveKitConnectionSignals />
       <LiveKitParticipantMediaBridge />
+      <RoomAudioRenderer />
+      <RoomAudioPlaybackUnlock />
       <BroadcastStage roomId={roomId} viewerRole={viewerRole} />
       {roomId ? (
         <>

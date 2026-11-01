@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { MonitorUp, Radio } from "lucide-react";
 import {
   LayoutContextProvider,
-  RoomAudioRenderer,
   StartAudio,
   isTrackReference,
   useCreateLayoutContext,
@@ -214,7 +213,6 @@ export function BroadcastStage({ roomId, viewerRole }: { roomId?: string; viewer
 
           <BroadcastControlBar roomId={roomId} viewerRole={viewerRole} />
           <StartAudio label={t("broadcast.startAudioLabel")} />
-          <RoomAudioRenderer />
         </div>
       </LayoutContextProvider>
     </BroadcastSettingsProvider>

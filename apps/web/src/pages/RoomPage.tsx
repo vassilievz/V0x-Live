@@ -89,7 +89,18 @@ export function RoomPage() {
   const hasSession = session.isSuccess;
   const entryInfo = entry.data;
 
+  const join = useMutation({
+    mutationFn: (password?: string) => roomsApi.join(roomId!, password),
+    onSuccess: (data) => {
+      applyJoinSuccess(data);
+      void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    },
+  });
+
+  const { mutate: joinRoom, reset: resetJoin } = join;
+
   const applyJoinSuccess = (data: JoinRoomResponse) => {
+    resetJoin();
     setRole(data.role);
     setJoined(true);
     joinedRef.current = true;
@@ -101,16 +112,6 @@ export function RoomPage() {
       soundEffects.playJoin();
     }
   };
-
-  const join = useMutation({
-    mutationFn: (password?: string) => roomsApi.join(roomId!, password),
-    onSuccess: (data) => {
-      applyJoinSuccess(data);
-      void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-    },
-  });
-
-  const { mutate: joinRoom, reset: resetJoin } = join;
 
   useEffect(() => {
     autoJoinDone.current = false;
@@ -344,7 +345,18 @@ export function RoomPage() {
       passwordRequired ||
       needsManualJoinGate);
 
-  const showStage = joined || join.isPending || join.isError;
+  const entryFlowBusy =
+    joined ||
+    join.isPending ||
+    entry.isPending ||
+    entry.isFetching ||
+    session.isFetching ||
+    session.isPending;
+
+  const showStage = joined || join.isPending;
+
+  const showJoinFailure =
+    !joined && !join.isPending && join.isError && autoJoinDone.current && !showGate;
 
   if (!session.isFetched) {
     return <RoomEntryLoading />;
@@ -382,8 +394,33 @@ export function RoomPage() {
     );
   }
 
+  if (showJoinFailure) {
+    return (
+      <SiteCatalogShell>
+        <section className={cn(homeBentoPanel, sitePanel)}>
+          <span className={homeCellCode}>RL-JOIN</span>
+          <h1 className={homeSectionTitle}>{t("room.errorTitle")}</h1>
+          <p className="mt-4 max-w-xl text-[0.9375rem] leading-[1.65] text-muted">
+            {join.error instanceof ApiError ? join.error.message : t("room.errorBody")}
+          </p>
+          <Button
+            variant="secondary"
+            className="mt-6"
+            onClick={() => {
+              autoJoinDone.current = false;
+              resetJoin();
+              joinRoom(undefined);
+            }}
+          >
+            {t("room.livekitRetry")}
+          </Button>
+        </section>
+      </SiteCatalogShell>
+    );
+  }
+
   if (!showStage && !showGate) {
-    if (entry.isError || entryLoadTimedOut) {
+    if ((entry.isError || entryLoadTimedOut) && !entryFlowBusy) {
       return (
         <SiteCatalogShell>
           <section className={cn(homeBentoPanel, sitePanel)}>
@@ -439,7 +476,7 @@ export function RoomPage() {
       }
       main={
         <>
-          {join.isError && join.error instanceof ApiError ? (
+          {join.isError && !joined && !join.isPending && join.error instanceof ApiError ? (
             <p className={roomStageAlert} role="alert">
               {join.error.message}
             </p>
@@ -461,7 +498,7 @@ export function RoomPage() {
                 }
               }}
             />
-          ) : livekit.isError ? (
+          ) : livekit.isError && joined ? (
             <div className={roomStagePlaceholder} role="status">
               <WifiOff className="size-8 text-muted" aria-hidden="true" />
               <p>{t("room.livekitError")}</p>

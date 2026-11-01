@@ -44,6 +44,7 @@ export function LiveKitParticipantMediaBridge() {
       const pref = getPref(p.identity);
       const vol = pref.locallyMuted ? 0 : livekitVolumeFromPercent(pref.volume);
       p.setVolume(vol, Track.Source.Microphone);
+      p.setVolume(vol, Track.Source.ScreenShareAudio);
     }
   }, [getPref, participants]);
 

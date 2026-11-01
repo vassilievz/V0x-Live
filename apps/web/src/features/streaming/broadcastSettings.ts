@@ -1,10 +1,5 @@
-import type {
-  ScreenShareCaptureOptions,
-  TrackPublishOptions,
-  VideoCaptureOptions,
-} from "livekit-client";
-import { Track } from "livekit-client";
-import { SCREEN_SHARE_AUDIO_CAPTURE } from "@/features/streaming/livekitRoomConfig";
+import type { ScreenShareCaptureOptions, TrackPublishOptions, VideoCaptureOptions } from "livekit-client";
+import { AudioPresets, Track } from "livekit-client";
 
 export type BroadcastContentMode = "text" | "motion";
 export type BroadcastResolution = "720p" | "1080p" | "1440p";
@@ -72,7 +67,7 @@ export function buildScreenShareMediaOptions(settings: BroadcastSettings): {
 
   return {
     captureOptions: {
-      audio: SCREEN_SHARE_AUDIO_CAPTURE,
+      audio: true,
       selfBrowserSurface: "include",
       contentHint,
       resolution: {
@@ -80,13 +75,16 @@ export function buildScreenShareMediaOptions(settings: BroadcastSettings): {
         height: res.height,
         frameRate: settings.fps,
       },
-    },
+    } satisfies ScreenShareCaptureOptions,
     publishOptions: {
       source: Track.Source.ScreenShare,
       screenShareEncoding: {
         maxBitrate: bitrate.maxBitrate,
         maxFramerate: settings.fps,
       },
+      audioPreset: AudioPresets.music,
+      dtx: false,
+      red: false,
       degradationPreference:
         settings.contentMode === "text" ? "maintain-resolution" : "maintain-framerate",
       simulcast: settings.smartQuality,
