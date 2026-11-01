@@ -297,7 +297,13 @@ export function RoomPage() {
       setEntryLoadTimedOut(false);
       return;
     }
-    const timer = window.setTimeout(() => setEntryLoadTimedOut(true), 8000);
+    if (entryInfo || entry.isError) {
+      setEntryLoadTimedOut(false);
+      return;
+    }
+    const stillLoading = entry.isPending || entry.isFetching;
+    const delayMs = stillLoading ? 20_000 : 8_000;
+    const timer = window.setTimeout(() => setEntryLoadTimedOut(true), delayMs);
     return () => window.clearTimeout(timer);
   }, [
     roomId,
@@ -309,6 +315,7 @@ export function RoomPage() {
     roomMeta.data?.password_required,
     entry.isPending,
     entry.isFetching,
+    entry.isError,
   ]);
 
   if (!roomId) {
@@ -320,12 +327,22 @@ export function RoomPage() {
   const needsNickGate = needsNickEntryGate(entryInfo, session.data, hasSession);
   const passwordRequired =
     entryInfo?.password_required ?? roomMeta.data?.password_required ?? false;
+  const canAutoJoin =
+    entryInfo && hasSession
+      ? mayAutoJoinRoomEntry(entryInfo, session.data, hasSession)
+      : false;
+  const needsManualJoinGate = Boolean(
+    entryInfo && hasSession && !canAutoJoin && !needsInviteGate && !passwordRequired,
+  );
 
   const showGate =
     !joined &&
     !join.isPending &&
     session.isFetched &&
-    (needsNickGate || needsInviteGate || passwordRequired);
+    (needsNickGate ||
+      needsInviteGate ||
+      passwordRequired ||
+      needsManualJoinGate);
 
   const showStage = joined || join.isPending || join.isError;
 
@@ -382,6 +399,7 @@ export function RoomPage() {
               className="mt-6"
               onClick={() => {
                 setEntryLoadTimedOut(false);
+                void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
                 void queryClient.invalidateQueries({ queryKey: ["room-entry", roomId] });
               }}
             >

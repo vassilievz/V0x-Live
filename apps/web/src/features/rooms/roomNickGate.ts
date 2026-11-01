@@ -41,13 +41,10 @@ export function needsNickEntryGate(
     if (isAuthenticatedMember(user)) {
       return false;
     }
-    if (isNickConfirmedThisSession()) {
-      return false;
+    if (!isNickConfirmedThisSession()) {
+      return true;
     }
     return isDefaultGuestDisplayName(user?.display_name);
-  }
-  if (entry.password_required || needsRoomInviteGate(entry)) {
-    return false;
   }
   if (isAuthenticatedMember(user)) {
     return false;
@@ -55,8 +52,8 @@ export function needsNickEntryGate(
   if (entry.is_host === true || entry.can_resume === true) {
     return false;
   }
-  if (isNickConfirmedThisSession() && hasSession) {
-    return false;
+  if (!isNickConfirmedThisSession()) {
+    return true;
   }
   if (!hasSession) {
     return true;

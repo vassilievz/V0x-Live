@@ -31,4 +31,21 @@ describe("roomNickGate", () => {
       needsNickEntryGate(undefined, { is_guest: true, display_name: "Guest" }, true),
     ).toBe(true);
   });
+
+  it("requires nick for guest with custom name until session confirms nick", () => {
+    expect(
+      needsNickEntryGate(
+        undefined,
+        { is_guest: true, display_name: "Maria" },
+        true,
+      ),
+    ).toBe(true);
+    expect(
+      needsNickEntryGate(
+        publicEntry,
+        { is_guest: true, display_name: "Maria" },
+        true,
+      ),
+    ).toBe(true);
+  });
 });
