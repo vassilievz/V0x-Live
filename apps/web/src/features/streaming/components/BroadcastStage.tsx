@@ -80,6 +80,22 @@ export function BroadcastStage({ roomId, viewerRole }: { roomId?: string; viewer
     (t) => !mainTrack || !sameTrackRef(t, mainTrack),
   );
 
+  const carouselTracks = useMemo(() => {
+    const mainIsScreen =
+      mainTrack &&
+      isTrackReference(mainTrack) &&
+      mainTrack.publication.source === Track.Source.ScreenShare;
+    return stripTracks.filter((t) => {
+      if (!isTrackReference(t) || !t.publication.track) {
+        return false;
+      }
+      if (mainIsScreen && t.publication.source === Track.Source.ScreenShare) {
+        return false;
+      }
+      return true;
+    });
+  }, [stripTracks, mainTrack]);
+
   const screenShareTracks = tracks
     .filter(isTrackReference)
     .filter((t) => t.publication.source === Track.Source.ScreenShare && t.publication.track);
@@ -128,7 +144,7 @@ export function BroadcastStage({ roomId, viewerRole }: { roomId?: string; viewer
               ) : showCine ? (
                 <RoomCineStage />
               ) : mainTrack && isTrackReference(mainTrack) ? (
-                <BroadcastScreenShareStage mainTrack={mainTrack} stripTracks={stripTracks} />
+                <BroadcastScreenShareStage mainTrack={mainTrack} stripTracks={carouselTracks} />
               ) : (
                 <div className="broadcast-stage-idle" role="status">
                   <div className="broadcast-stage-idle-media" aria-hidden="true">

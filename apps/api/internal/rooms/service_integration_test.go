@@ -69,7 +69,7 @@ func setupIntegration(t *testing.T) (*database.Store, *Service, *session.Manager
 func guestSession(t *testing.T, sessions *session.Manager, name string) session.Session {
 	t.Helper()
 	ctx := context.Background()
-	_, sess, err := sessions.CreateGuest(ctx, name)
+	_, sess, err := sessions.CreateGuest(ctx, name, "")
 	if err != nil {
 		t.Fatalf("CreateGuest: %v", err)
 	}
@@ -264,7 +264,7 @@ func TestIntegrationPublicRoomOwnerResumesHostWithNewSession(t *testing.T) {
 		t.Fatalf("mark host left: %v", err)
 	}
 
-	_, resumedSession, err := sessions.CreateGuest(context.Background(), "Host return")
+	_, resumedSession, err := sessions.CreateGuest(context.Background(), "Host return", "")
 	if err != nil {
 		t.Fatalf("CreateGuest: %v", err)
 	}

@@ -1,42 +1,93 @@
 # V0x Live
 
-Salas ao vivo no navegador: tela, voz, vídeo e chat. Monorepo open-source (React + Go + MongoDB + LiveKit).
+Browser-native group rooms for screen sharing, voice, video, and chat. Open-source monorepo built with React, Go, MongoDB, and LiveKit.
 
-## Stack
+## Architecture
 
-| Camada | Tecnologia |
-|--------|------------|
-| Web | React 19, Vite, Tailwind 4 |
-| API | Go, MongoDB |
-| Realtime | WebSocket + LiveKit |
+| Layer | Stack |
+|-------|--------|
+| Web | React 19, Vite, Tailwind CSS 4 |
+| API | Go (Chi), MongoDB |
+| Realtime | WebSocket hub, LiveKit (WebRTC) |
 
-## Desenvolvimento local
+Public site: [live.v0x.lol](https://live.v0x.lol)  
+API: [apilive.v0x.lol](https://apilive.v0x.lol)
 
-```powershell
+## Prerequisites
+
+- Node.js 22+ and pnpm 9 (see `packageManager` in root `package.json`)
+- Go 1.26+
+- MongoDB 7+ (local or Docker)
+- LiveKit server (optional for local media; see below)
+
+## Local development
+
+```bash
 pnpm install
+```
 
-# API — copie apps/api/.env.example → apps/api/.env e preencha MONGO_URL
+**API**
+
+1. Copy `apps/api/.env.example` to `apps/api/.env`.
+2. Set `MONGO_URL` and session/LiveKit variables as documented in the example file.
+
+```bash
 pnpm dev:api
+```
 
-# Web (outro terminal)
+**Web** (separate terminal):
+
+```bash
 pnpm dev:web
+```
 
-# LiveKit local (opcional)
+**LiveKit** (optional):
+
+```bash
 pnpm dev:livekit
 ```
 
-Redis + LiveKit via Docker: `docker compose up -d` (requer Docker).
+For Redis and LiveKit via Docker:
 
-## Deploy (Railway)
+```bash
+docker compose up -d
+```
 
-Produção: **live.v0x.lol** (front) · **apilive.v0x.lol** (API) · **lklive.v0x.lol** (LiveKit).
+## Quality checks
 
-Guia: [`docs/deploy/railway.md`](docs/deploy/railway.md) · serviços/build: [`docs/deploy/railway-services.md`](docs/deploy/railway-services.md) · variáveis: `.env.railway`
+From the repository root:
 
-## Licença
+```bash
+# Go unit tests
+cd apps/api && go test ./... -count=1
 
-MIT — ver [`LICENSE`](LICENSE).
+# Go integration tests (requires MongoDB on MONGO_TEST_URI or default localhost)
+cd apps/api && go test -tags=integration ./internal/rooms/... -count=1
 
-## Segurança
+# Web typecheck, unit tests, production build
+pnpm exec tsc -b --noEmit -p apps/web
+pnpm --filter @v0xlive/web test
+pnpm build
 
-Nunca commite `.env`. Use `.env.example` como referência. Relatos: abra uma issue no GitHub.
+# Dependency audit (high severity and above)
+pnpm audit --audit-level=high
+```
+
+CI runs the same checks in [`.github/workflows/security.yml`](.github/workflows/security.yml).
+
+## Deployment
+
+Production deployment on Railway is documented in:
+
+- [`docs/deploy/railway.md`](docs/deploy/railway.md)
+- [`docs/deploy/railway-services.md`](docs/deploy/railway-services.md)
+
+Environment templates: `.env.railway` and per-app `.env.example` files.
+
+## Security
+
+Do not commit secrets or `.env` files. Use the provided `.env.example` templates. Report vulnerabilities via GitHub Issues (avoid posting sensitive details in public threads).
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
