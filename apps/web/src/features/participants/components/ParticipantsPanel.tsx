@@ -7,6 +7,8 @@ import { Button } from "@v0xlive/ui";
 import { UserAvatar } from "@/components/user/UserAvatar";
 import { roomsApi } from "@/lib/api";
 import { isParticipantRealtimeEvent } from "@/features/participants/participantRealtime";
+import { useRoomMediaUi } from "@/features/streaming/RoomMediaUiContext";
+import { ParticipantLocalVolumeControls } from "@/features/participants/components/ParticipantLocalVolumeControls";
 import { cn } from "@/lib/cn";
 import { participantRoleKey } from "@/i18n/participantRole";
 import {
@@ -25,6 +27,7 @@ import {
   roomParticipantRole,
   roomParticipantRoleHost,
   roomParticipantRow,
+  roomParticipantSpeaking,
   roomStageTab,
   roomStageTabActive,
 } from "@/ui";
@@ -33,13 +36,22 @@ type Props = {
   roomId: string;
   lastEvent: RealtimeEvent | null;
   viewerRole: string | null;
+  viewerSessionId?: string | null;
   embedded?: boolean;
   active?: boolean;
 };
 
-export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded, active = true }: Props) {
+export function ParticipantsPanel({
+  roomId,
+  lastEvent,
+  viewerRole,
+  viewerSessionId,
+  embedded,
+  active = true,
+}: Props) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { speakingSessionIds } = useRoomMediaUi();
   const list = useQuery({
     queryKey: ["participants", roomId],
     queryFn: () => roomsApi.participants(roomId),
@@ -84,7 +96,13 @@ export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded, act
       ) : null}
       <ul className={roomParticipantList} aria-label={t("participants.title")}>
         {list.data?.items.map((p) => (
-          <li key={p.id} className={roomParticipantRow}>
+          <li
+            key={p.id}
+            className={cn(
+              roomParticipantRow,
+              speakingSessionIds.has(p.session_id) && roomParticipantSpeaking,
+            )}
+          >
             <UserAvatar name={p.display_name} size="sm" className={roomParticipantAvatar} />
             <div className={cn(roomParticipantMain, "min-w-0")}>
               <div className={roomParticipantHead}>
@@ -110,6 +128,12 @@ export function ParticipantsPanel({ roomId, lastEvent, viewerRole, embedded, act
                   <VideoOff className="size-3.5 text-muted" aria-hidden="true" />
                 )}
               </div>
+              {p.session_id !== viewerSessionId ? (
+                <ParticipantLocalVolumeControls
+                  sessionId={p.session_id}
+                  displayName={p.display_name}
+                />
+              ) : null}
             </div>
             {p.role !== "host" && (canRemove || isHost) ? (
               <div className={roomParticipantActions}>

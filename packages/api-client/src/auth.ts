@@ -136,7 +136,7 @@ export type RoomCineUpsertBody =
     };
 
 export type RoomCinePatchBody = {
-  action: "play" | "pause" | "seek" | "prev_episode" | "next_episode" | "set_episode";
+  action: "play" | "pause" | "seek" | "sync" | "prev_episode" | "next_episode" | "set_episode";
   position_sec?: number;
   season?: number;
   episode?: number;

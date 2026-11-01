@@ -25,13 +25,25 @@ func integrationMongoURL(t *testing.T) string {
 	return "mongodb://127.0.0.1:27017/v0xlive_integration_test"
 }
 
+func integrationDBRequired(t *testing.T) bool {
+	t.Helper()
+	return os.Getenv("CI") == "true" || os.Getenv("REQUIRE_INTEGRATION_DB") == "1"
+}
+
 func setupIntegration(t *testing.T) (*database.Store, *Service, *session.Manager) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	timeout := 20 * time.Second
+	if integrationDBRequired(t) {
+		timeout = 5 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	store, err := database.Connect(ctx, integrationMongoURL(t))
 	if err != nil {
+		if integrationDBRequired(t) {
+			t.Fatalf("MongoDB obrigatório para integração: %v", err)
+		}
 		t.Skipf("MongoDB indisponível para integração: %v", err)
 	}
 
@@ -326,5 +338,25 @@ func TestIntegrationRoomPurgedWhenLastParticipantLeaves(t *testing.T) {
 	_, err = svc.GetByID(context.Background(), room.ID)
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("GetByID after purge: got %v want ErrNotFound", err)
+	}
+}
+
+func TestIntegrationGuestHostCanCloseRoom(t *testing.T) {
+	_, svc, sessions := setupIntegration(t)
+	host := guestSession(t, sessions, "Creator")
+	room, err := svc.Create(context.Background(), host, CreateInput{
+		Name:            "Public",
+		Visibility:      models.VisibilityPublic,
+		MaxParticipants: 10,
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := svc.Close(context.Background(), room.ID, host); err != nil {
+		t.Fatalf("Close guest host: %v", err)
+	}
+	_, err = svc.GetByID(context.Background(), room.ID)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("GetByID after close: got %v want ErrNotFound", err)
 	}
 }

@@ -4,6 +4,7 @@ import type {
   VideoCaptureOptions,
 } from "livekit-client";
 import { Track } from "livekit-client";
+import { SCREEN_SHARE_AUDIO_CAPTURE } from "@/features/streaming/livekitRoomConfig";
 
 export type BroadcastContentMode = "text" | "motion";
 export type BroadcastResolution = "720p" | "1080p" | "1440p";
@@ -71,7 +72,7 @@ export function buildScreenShareMediaOptions(settings: BroadcastSettings): {
 
   return {
     captureOptions: {
-      audio: true,
+      audio: SCREEN_SHARE_AUDIO_CAPTURE,
       selfBrowserSurface: "include",
       contentHint,
       resolution: {

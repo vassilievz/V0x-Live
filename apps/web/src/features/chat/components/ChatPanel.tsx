@@ -47,7 +47,17 @@ export function ChatPanel({ roomId, lastEvent, viewerRole, embedded }: Props) {
 
   useEffect(() => {
     if (lastEvent?.type === "chat.message.created") {
-      queryClient.invalidateQueries({ queryKey: ["chat", roomId] });
+      const payload = lastEvent.payload as ChatMessage;
+      queryClient.setQueryData<{ items: ChatMessage[] }>(["chat", roomId], (prev) => {
+        if (!prev) {
+          void queryClient.invalidateQueries({ queryKey: ["chat", roomId] });
+          return prev;
+        }
+        if (prev.items.some((m) => m.id === payload.id)) {
+          return prev;
+        }
+        return { ...prev, items: [...prev.items, payload] };
+      });
     }
   }, [lastEvent, queryClient, roomId]);
 

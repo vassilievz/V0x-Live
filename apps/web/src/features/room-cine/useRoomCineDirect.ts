@@ -9,6 +9,30 @@ import { attachViewerVideoGuards } from "@/features/synced-playback/viewerVideoG
 
 const LOCAL_GUARD_MS = 750;
 const SEEK_DRIFT_SEC = 2;
+const DRIFT_SOFT_SEC = 0.8;
+const CINE_SYNC_HEARTBEAT_MS = 10_000;
+const VIEWER_DRIFT_TICK_MS = 2000;
+
+function applyPlaybackDrift(video: HTMLVideoElement, expected: number): void {
+  const drift = video.currentTime - expected;
+  const abs = Math.abs(drift);
+  if (abs <= DRIFT_SOFT_SEC) {
+    if (video.playbackRate !== 1) {
+      video.playbackRate = 1;
+    }
+    return;
+  }
+  if (abs > SEEK_DRIFT_SEC) {
+    try {
+      video.currentTime = expected;
+    } catch {
+      // ignore seek errors during load
+    }
+    video.playbackRate = 1;
+    return;
+  }
+  video.playbackRate = drift > 0 ? 0.95 : 1.05;
+}
 
 async function startVideoPlayback(
   video: HTMLVideoElement,
@@ -70,6 +94,8 @@ export function useRoomCineDirect({
   const [localPlaying, setLocalPlaying] = useState(false);
   const [needsUnlock, setNeedsUnlock] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const bumpLocalGuard = useCallback((ms = LOCAL_GUARD_MS) => {
     localGuardUntil.current = Date.now() + ms;
@@ -119,13 +145,7 @@ export function useRoomCineDirect({
 
       const applyTimeAndPlayState = () => {
         runWithoutPlaybackEvents(() => {
-          if (Math.abs(video.currentTime - expected) > SEEK_DRIFT_SEC) {
-            try {
-              video.currentTime = expected;
-            } catch {
-              // ignore seek errors during load
-            }
-          }
+          applyPlaybackDrift(video, expected);
           if (next.playing) {
             void startVideoPlayback(
               video,
@@ -381,6 +401,48 @@ export function useRoomCineDirect({
       suppressEvents: suppressPlaybackEvents,
     });
   }, [active, canControl, state, videoRef]);
+
+  useEffect(() => {
+    if (!canControl || !active || !state?.playing || !state.active) {
+      return;
+    }
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+    const tick = window.setInterval(() => {
+      if (applyingRemote.current) {
+        return;
+      }
+      const pos = video.currentTime;
+      const nowIso = new Date().toISOString();
+      setCineCache({ playing: true, position_sec: pos, state_at: nowIso });
+      patch({ action: "sync", position_sec: pos });
+    }, CINE_SYNC_HEARTBEAT_MS);
+    return () => window.clearInterval(tick);
+  }, [active, canControl, patch, setCineCache, state?.active, state?.playing, videoRef]);
+
+  useEffect(() => {
+    if (canControl || !active || !state?.active || state.playing !== true) {
+      return;
+    }
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+    const tick = window.setInterval(() => {
+      if (applyingRemote.current || Date.now() < localGuardUntil.current) {
+        return;
+      }
+      const latest = stateRef.current;
+      if (!latest?.active || latest.playing !== true) {
+        return;
+      }
+      const expected = expectedPositionSec(latest);
+      applyPlaybackDrift(video, expected);
+    }, VIEWER_DRIFT_TICK_MS);
+    return () => window.clearInterval(tick);
+  }, [active, canControl, videoRef]);
 
   const sendPlayPause = useCallback(() => {
     const video = videoRef.current;

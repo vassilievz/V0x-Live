@@ -35,7 +35,16 @@ export function needsNickEntryGate(
   hasSession: boolean,
 ): boolean {
   if (!entry) {
-    return false;
+    if (!hasSession) {
+      return true;
+    }
+    if (isAuthenticatedMember(user)) {
+      return false;
+    }
+    if (isNickConfirmedThisSession()) {
+      return false;
+    }
+    return isDefaultGuestDisplayName(user?.display_name);
   }
   if (entry.password_required || needsRoomInviteGate(entry)) {
     return false;

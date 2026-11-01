@@ -10,6 +10,7 @@ import {
   type BroadcastResolution,
 } from "@/features/streaming/broadcastSettings";
 import { useBroadcastSettings } from "@/features/streaming/BroadcastSettingsContext";
+import { BroadcastMediaDevicesSection } from "@/features/streaming/components/BroadcastMediaDevicesSection";
 import { cn } from "@/lib/cn";
 import {
   fieldGroup,
@@ -160,6 +161,7 @@ export function BroadcastSettingsMenu({ open, onClose, className }: BroadcastSet
           {t("broadcast.adaptive")}
         </label>
       </div>
+      <BroadcastMediaDevicesSection />
     </div>
   );
 }

@@ -1017,3 +1017,25 @@
   padding: 0;
   gap: 0;
 }
+
+.broadcast-room .lk-participant-tile[data-lk-speaking="true"],
+.broadcast-room .lk-participant-tile[data-lk-speaking="true"] .lk-participant-placeholder {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.35),
+    0 0 22px rgb(255 255 255 / 0.14);
+  animation: v0x-speaking-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes v0x-speaking-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.28),
+      0 0 14px rgb(255 255 255 / 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.55),
+      0 0 24px rgb(255 255 255 / 0.16);
+  }
+}

@@ -89,6 +89,7 @@ export const domainEn = {
     sortPeople: "Most people",
     sortRecent: "Most recent",
     onAir: "On air",
+    closedByHostNotice: "The host ended this room.",
   },
   room: {
     defaultName: "Room",
@@ -166,6 +167,9 @@ export const domainEn = {
     allowVideo: "Allow video",
     empty: "No one else in the room yet.",
     mediaStatus: "Audio and video status",
+    localMute: "Mute for me",
+    localUnmute: "Unmute for me",
+    volumeAria: "Local volume for {{name}}",
     roles: {
       host: "Host",
       moderator: "Moderator",
@@ -322,5 +326,13 @@ export const domainEn = {
     bitrateLow: "Low (1.5 Mb/s)",
     bitrateMedium: "Medium (2.5 Mb/s)",
     bitrateHigh: "High (4 Mb/s)",
+    devicesLead: "Switch mic, speaker, or camera without leaving the room.",
+    microphoneInput: "Microphone (input)",
+    audioOutput: "Audio output",
+    cameraInput: "Camera (input)",
+    deviceDefault: "System default",
+    outputUnsupported: "This browser cannot select headphones or speakers.",
+    pushToTalk: "Push-to-talk mode",
+    pushToTalkKey: "Push-to-talk key",
   },
 } satisfies DomainResource;

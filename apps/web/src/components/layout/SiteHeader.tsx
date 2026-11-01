@@ -50,6 +50,9 @@ export function SiteHeader() {
           <NavLink to="/dashboard" className={navLink}>
             {t("nav.mySpace")}
           </NavLink>
+          <NavLink to="/changelog" className={navLink}>
+            {t("nav.changelog")}
+          </NavLink>
         </nav>
         <div className={headerActions}>
           <DiscordCommunityLink />
@@ -83,6 +86,9 @@ export function SiteHeader() {
             </NavLink>
             <NavLink to="/dashboard" onClick={() => setOpen(false)}>
               {t("nav.mySpaceCreate")}
+            </NavLink>
+            <NavLink to="/changelog" onClick={() => setOpen(false)}>
+              {t("nav.changelog")}
             </NavLink>
             {session.data ? (
               <span className={mobileNavSession}>{session.data.display_name}</span>

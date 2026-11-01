@@ -93,7 +93,9 @@ export const roomChatSystemBody = "text-[13px] leading-snug text-foreground";
 export const roomParticipantList =
   "m-0 flex-1 list-none overflow-y-auto px-2.5 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-2";
 export const roomParticipantRow =
-  "flex items-center gap-2.5 rounded-xl border border-transparent px-2 py-2.5 transition-[background-color,border-color] duration-150 hover:border-[rgb(255_255_255/6%)] hover:bg-[rgb(255_255_255/4%)]";
+  "flex items-center gap-2.5 rounded-xl border border-transparent px-2 py-2.5 transition-[background-color,border-color,box-shadow] duration-150 hover:border-[rgb(255_255_255/6%)] hover:bg-[rgb(255_255_255/4%)]";
+export const roomParticipantSpeaking =
+  "ring-1 ring-[rgb(255_255_255/55%)] shadow-[0_0_0_1px_rgb(255_255_255/20%),0_0_18px_rgb(255_255_255/12%)] animate-pulse";
 export const roomParticipantAvatar = "shrink-0";
 export const roomParticipantMain = "min-w-0 flex-1";
 export const roomParticipantHead =

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowUpRight, Search, Users, WifiOff } from "lucide-react";
@@ -34,7 +34,9 @@ import {
   roomsToolbarRow,
   sitePanelFlush,
   textLink,
+  notice,
 } from "@/ui";
+import type { RoomClosedFlashState } from "@/features/rooms/roomExitNavigation";
 
 function searchLocale(language: string): string {
   if (language.startsWith("pt")) return "pt-BR";
@@ -47,6 +49,9 @@ type RoomFilter = "all" | "live";
 type RoomSort = "people" | "recent";
 
 export function ExploreRoomsPage() {
+  const location = useLocation();
+  const closedFlash = (location.state as RoomClosedFlashState | null)?.roomClosedByHost;
+  const [showClosedNotice, setShowClosedNotice] = useState(Boolean(closedFlash));
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RoomFilter>("all");
   const [sort, setSort] = useState<RoomSort>("people");
@@ -63,6 +68,15 @@ export function ExploreRoomsPage() {
   useEffect(() => {
     void ensureGuestSession(queryClient);
   }, [queryClient]);
+
+  useEffect(() => {
+    if (!closedFlash) {
+      return;
+    }
+    window.history.replaceState({}, "", location.pathname + location.search);
+    const timer = window.setTimeout(() => setShowClosedNotice(false), 8000);
+    return () => window.clearTimeout(timer);
+  }, [closedFlash, location.pathname, location.search]);
 
   const prefetchGuest = () => {
     void ensureGuestSession(queryClient);
@@ -101,6 +115,12 @@ export function ExploreRoomsPage() {
           }
         />
       </ExploreRoomsHero>
+
+      {showClosedNotice ? (
+        <p className={cn(notice, "mx-auto mb-6 max-w-3xl")} role="status">
+          {t("explore.closedByHostNotice")}
+        </p>
+      ) : null}
 
       <section className={cn(homeBentoPanel, sitePanelFlush)}>
         <div className={roomsToolbar}>

@@ -25,4 +25,10 @@ describe("roomNickGate", () => {
       mayAutoJoinRoomEntry(publicEntry, { is_guest: false } as never, true),
     ).toBe(true);
   });
+
+  it("requires nick before entry payload loads for default guest session", () => {
+    expect(
+      needsNickEntryGate(undefined, { is_guest: true, display_name: "Guest" }, true),
+    ).toBe(true);
+  });
 });

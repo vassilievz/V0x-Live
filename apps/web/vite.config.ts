@@ -10,6 +10,20 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/livekit-client") || id.includes("@livekit/components")) {
+            return "livekit";
+          }
+          if (id.includes("node_modules/hls.js")) {
+            return "hls";
+          }
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

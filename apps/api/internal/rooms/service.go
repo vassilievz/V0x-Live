@@ -17,6 +17,7 @@ import (
 	"github.com/v0xlive/v0x-live/apps/api/internal/auth/password"
 	"github.com/v0xlive/v0x-live/apps/api/internal/auth/session"
 	"github.com/v0xlive/v0x-live/apps/api/internal/database"
+	"github.com/v0xlive/v0x-live/apps/api/internal/livekitadmin"
 	"github.com/v0xlive/v0x-live/apps/api/internal/models"
 )
 
@@ -46,6 +47,7 @@ type Service struct {
 	roomMusic    *mongo.Collection
 	roomCine     *mongo.Collection
 	presence     *RealtimePresence
+	livekit      *livekitadmin.RoomAdmin
 }
 
 func NewService(store *database.Store) *Service {
@@ -62,6 +64,24 @@ func NewService(store *database.Store) *Service {
 
 func (s *Service) SetRealtimePresence(p *RealtimePresence) {
 	s.presence = p
+}
+
+func (s *Service) SetLiveKitAdmin(a *livekitadmin.RoomAdmin) {
+	s.livekit = a
+}
+
+func (s *Service) revokeLiveKitParticipant(roomID, sessionID primitive.ObjectID) {
+	if s.livekit == nil {
+		return
+	}
+	s.livekit.RemoveParticipant(roomID.Hex(), sessionID.Hex())
+}
+
+func (s *Service) destroyLiveKitRoom(roomID primitive.ObjectID) {
+	if s.livekit == nil {
+		return
+	}
+	s.livekit.DeleteRoom(roomID.Hex())
 }
 
 type PublicRoomItem struct {
@@ -398,6 +418,7 @@ func (s *Service) Leave(ctx context.Context, roomID primitive.ObjectID, sess ses
 	if res.MatchedCount == 0 {
 		return false, ErrNotFound
 	}
+	s.revokeLiveKitParticipant(roomID, sess.ID)
 	return s.tryDeleteRoomIfEmpty(ctx, roomID)
 }
 
@@ -414,6 +435,7 @@ func (s *Service) LeaveBySessionID(ctx context.Context, roomID, sessionID primit
 	if res.MatchedCount == 0 {
 		return false, nil
 	}
+	s.revokeLiveKitParticipant(roomID, sessionID)
 	return s.tryDeleteRoomIfEmpty(ctx, roomID)
 }
 
@@ -437,11 +459,11 @@ func (s *Service) ListActiveRooms(ctx context.Context, limit int64) ([]models.Ro
 }
 
 func (s *Service) Close(ctx context.Context, roomID primitive.ObjectID, sess session.Session) error {
-	part, err := s.findActiveParticipant(ctx, roomID, sess.ID)
+	room, err := s.GetByID(ctx, roomID)
 	if err != nil {
 		return err
 	}
-	if part.Role != models.RoleHost {
+	if !s.mayCloseRoom(ctx, room, sess) {
 		return ErrForbidden
 	}
 	now := time.Now().UTC()
@@ -454,6 +476,18 @@ func (s *Service) Close(ctx context.Context, roomID primitive.ObjectID, sess ses
 	}
 	_, err = s.tryDeleteRoomIfEmpty(ctx, roomID)
 	return err
+}
+
+func (s *Service) mayCloseRoom(ctx context.Context, room models.Room, sess session.Session) bool {
+	_, isHost := s.RoomEntryFlags(ctx, room, sess)
+	if isHost {
+		return true
+	}
+	part, err := s.findActiveParticipant(ctx, room.ID, sess.ID)
+	if err != nil {
+		return false
+	}
+	return part.Role == models.RoleHost
 }
 
 func (s *Service) ListParticipants(ctx context.Context, roomID primitive.ObjectID) ([]models.RoomParticipant, error) {
@@ -525,6 +559,7 @@ func (s *Service) RemoveParticipant(ctx context.Context, roomID, participantID p
 	if err != nil {
 		return false, err
 	}
+	s.revokeLiveKitParticipant(roomID, target.SessionID)
 	return s.tryDeleteRoomIfEmpty(ctx, roomID)
 }
 
@@ -685,6 +720,7 @@ func (s *Service) PruneStaleParticipants(ctx context.Context, roomID primitive.O
 
 	now := time.Now().UTC()
 	var stale []primitive.ObjectID
+	var staleSessions []primitive.ObjectID
 	for cur.Next(ctx) {
 		var p models.RoomParticipant
 		if err := cur.Decode(&p); err != nil {
@@ -697,12 +733,16 @@ func (s *Service) PruneStaleParticipants(ctx context.Context, roomID primitive.O
 		}).Err()
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			stale = append(stale, p.ID)
+			staleSessions = append(staleSessions, p.SessionID)
 		} else if err != nil {
 			return err
 		}
 	}
 	if len(stale) == 0 {
 		return nil
+	}
+	for _, sessionID := range staleSessions {
+		s.revokeLiveKitParticipant(roomID, sessionID)
 	}
 	_, err = s.participants.UpdateMany(ctx, bson.M{
 		"_id": bson.M{"$in": stale},

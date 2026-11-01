@@ -9,6 +9,9 @@ import { roomStageBroadcast } from "@/ui";
 import { BroadcastStage } from "@/features/streaming/components/BroadcastStage";
 import { RoomCoverPublisher } from "@/features/streaming/components/RoomCoverPublisher";
 import { ScreenShareSignals } from "@/features/streaming/components/ScreenShareSignals";
+import { LiveKitConnectionSignals } from "@/features/streaming/components/LiveKitConnectionSignals";
+import { LiveKitParticipantMediaBridge } from "@/features/streaming/components/LiveKitParticipantMediaBridge";
+import { LIVEKIT_ROOM_OPTIONS } from "@/features/streaming/livekitRoomConfig";
 
 type Props = {
   token: string;
@@ -28,10 +31,13 @@ export function LiveKitStage({ token, serverUrl, roomId, viewerRole, onDisconnec
       connect
       audio={false}
       video={false}
+      options={LIVEKIT_ROOM_OPTIONS}
       data-lk-theme="default"
       onDisconnected={onDisconnected}
       className={cn("broadcast-room lk-room-container", roomStageBroadcast)}
     >
+      <LiveKitConnectionSignals />
+      <LiveKitParticipantMediaBridge />
       <BroadcastStage roomId={roomId} viewerRole={viewerRole} />
       {roomId ? (
         <>

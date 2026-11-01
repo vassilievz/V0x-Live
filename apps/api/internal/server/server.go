@@ -19,6 +19,7 @@ import (
 	"github.com/v0xlive/v0x-live/apps/api/internal/database"
 	"github.com/v0xlive/v0x-live/apps/api/internal/health"
 	apimw "github.com/v0xlive/v0x-live/apps/api/internal/middleware"
+	"github.com/v0xlive/v0x-live/apps/api/internal/livekitadmin"
 	"github.com/v0xlive/v0x-live/apps/api/internal/music"
 	"github.com/v0xlive/v0x-live/apps/api/internal/presence"
 	"github.com/v0xlive/v0x-live/apps/api/internal/realtime"
@@ -29,15 +30,18 @@ import (
 const version = "0.2.0"
 
 type Server struct {
-	cfg   config.Config
-	store *database.Store
-	http  *http.Server
+	cfg        config.Config
+	store      *database.Store
+	http       *http.Server
+	hub        *realtime.Hub
+	wsPresence *rooms.RealtimePresence
 }
 
 func New(cfg config.Config, store *database.Store) *Server {
 	sessions := session.NewManager(store, cfg.SessionCookieName, cfg.SessionCookieDomain, cfg.SessionMaxAge, cfg.SecureCookies())
 	hub := realtime.NewHub()
 	roomSvc := rooms.NewService(store)
+	roomSvc.SetLiveKitAdmin(livekitadmin.NewRoomAdmin(cfg))
 	roomHandler := rooms.NewHandler(roomSvc, hub, cfg)
 	wsPresence := rooms.NewRealtimePresence(
 		roomSvc,
@@ -121,14 +125,15 @@ func New(cfg config.Config, store *database.Store) *Server {
 	})
 
 	s := &http.Server{
-		Addr:         cfg.HTTPAddr,
-		Handler:      r,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 0,
-		IdleTimeout:  120 * time.Second,
+		Addr:              cfg.HTTPAddr,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      0,
+		IdleTimeout:       120 * time.Second,
 	}
 
-	return &Server{cfg: cfg, store: store, http: s}
+	return &Server{cfg: cfg, store: store, http: s, hub: hub, wsPresence: wsPresence}
 }
 
 func (s *Server) ListenAndServe() error {
@@ -137,5 +142,11 @@ func (s *Server) ListenAndServe() error {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	if s.wsPresence != nil {
+		s.wsPresence.Shutdown()
+	}
+	if s.hub != nil {
+		s.hub.Shutdown(ctx)
+	}
 	return s.http.Shutdown(ctx)
 }

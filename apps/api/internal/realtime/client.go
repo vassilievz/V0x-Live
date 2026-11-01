@@ -41,6 +41,17 @@ func (c *Client) TrySend(data []byte) {
 	}
 }
 
+// CloseWithCode sends a WebSocket close frame and closes the connection.
+func (c *Client) CloseWithCode(code int, reason string) {
+	deadline := time.Now().Add(writeWait)
+	_ = c.conn.SetWriteDeadline(deadline)
+	_ = c.conn.WriteMessage(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(code, reason),
+	)
+	_ = c.conn.Close()
+}
+
 func (c *Client) Run(ctx context.Context) {
 	c.hub.Register(c.roomID, c)
 	defer func() {

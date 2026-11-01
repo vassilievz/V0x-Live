@@ -29,6 +29,7 @@ export const ru = {
     mySpace: "Моё пространство",
     mySpaceCreate: "Моё пространство / Создать комнату",
     createRoom: "Создать комнату",
+    changelog: "Обновления",
     changeName: "Сменить имя",
     signingOut: "Выход…",
     guest: "Гость",
@@ -64,7 +65,17 @@ export const ru = {
     home: "Ваша группа на одной волне",
     dashboard: "Ваше пространство",
     rooms: "Публичные комнаты",
+    changelog: "Обновления",
     notFound: "Страница не найдена",
+  },
+  changelog: {
+    title: "Обновления V0x Live",
+    description: "Исправления, улучшения и безопасность — что изменилось в каждом релизе.",
+    section: {
+      fix: "Исправления",
+      improvement: "Улучшения",
+      security: "Безопасность",
+    },
   },
   landing: {
     hero: {

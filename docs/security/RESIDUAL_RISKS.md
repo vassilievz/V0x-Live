@@ -14,7 +14,7 @@
 
 ## Baixo / processo
 
-7. ~~**pnpm audit (dev):** Vitest/tinypool críticos~~ — **Mitigado:** Vitest 3.2.7 + `pnpm.overrides` tinypool ≥2.1.2. Permanece **zod** high (<4.6.6) em runtime — avaliar upgrade major.
+7. ~~**pnpm audit (dev):** Vitest/tinypool críticos~~ — **Mitigado:** Vitest 3.2.7 + `pnpm.overrides` tinypool ≥2.1.2. ~~**zod** high (<4.6.6)~~ — **Mitigado:** dependência direta removida (não usada no código); `pnpm audit --audit-level=high` limpo.
 8. **OpenAPI desatualizado:** rotas fantasma no YAML — risco de documentação enganosa, não bypass runtime.
 9. **Sem go test -race em CI Windows local:** CI Linux executa `-race`; local Windows/386 continua limitado.
 10. **LGPD:** política de retenção/exclusão de conta — revisão legal além do escopo técnico.

@@ -12,9 +12,15 @@ import {
   buildCameraMediaOptions,
   buildScreenShareMediaOptions,
 } from "@/features/streaming/broadcastSettings";
+import {
+  buildMicrophonePublishOptions,
+  VOICE_MIC_CAPTURE,
+} from "@/features/streaming/livekitRoomConfig";
 import { useBroadcastSettings } from "@/features/streaming/BroadcastSettingsContext";
 import { soundEffects } from "@/utils/soundEffects";
 import { BroadcastSettingsMenu } from "@/features/streaming/components/BroadcastSettingsMenu";
+import { useRoomMediaSettings } from "@/features/streaming/roomMediaSettings";
+import { usePushToTalk } from "@/features/streaming/usePushToTalk";
 import { BroadcastRoomMediaButton } from "@/features/streaming/components/BroadcastRoomMediaButton";
 import { BroadcastRoomCineButton } from "@/features/room-cine/components/BroadcastRoomCineButton";
 
@@ -67,6 +73,8 @@ export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: Broad
     [settings],
   );
   const cameraMedia = useMemo(() => buildCameraMediaOptions(settings), [settings]);
+  const micPublishOptions = useMemo(() => buildMicrophonePublishOptions(), []);
+  const [mediaSettings] = useRoomMediaSettings();
   const screenOn = localParticipant?.isScreenShareEnabled ?? false;
   const micOn = localParticipant?.isMicrophoneEnabled ?? false;
   const micOnRef = useRef(micOn);
@@ -149,6 +157,12 @@ export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: Broad
   const showScreen =
     canPublishSource(Track.Source.ScreenShare) && browserSupportsScreenSharing();
 
+  usePushToTalk(
+    mediaSettings.pushToTalk && showMic,
+    mediaSettings.pushToTalkKey,
+    localParticipant,
+  );
+
   const screenLabel = screenOn
     ? compact
       ? t("broadcast.screenStopShort")
@@ -167,6 +181,9 @@ export function BroadcastControlBar({ roomId, viewerRole, onDeviceError }: Broad
                 <TrackToggle
                   source={Track.Source.Microphone}
                   showIcon
+                  captureOptions={VOICE_MIC_CAPTURE}
+                  publishOptions={micPublishOptions}
+                  disabled={mediaSettings.pushToTalk}
                   onDeviceError={(error) =>
                     onDeviceError?.({ source: Track.Source.Microphone, error })
                   }

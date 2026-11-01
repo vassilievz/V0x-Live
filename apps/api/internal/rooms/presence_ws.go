@@ -159,3 +159,13 @@ func (p *RealtimePresence) hasPendingLeave(roomID string, sessionID primitive.Ob
 	_, ok := p.pending[key]
 	return ok
 }
+
+// Shutdown cancels pending leave timers (server shutdown).
+func (p *RealtimePresence) Shutdown() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for key, item := range p.pending {
+		item.timer.Stop()
+		delete(p.pending, key)
+	}
+}

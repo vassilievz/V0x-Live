@@ -20,11 +20,16 @@ export function useRoomSocket(roomId: string | undefined, enabled: boolean) {
     let attempts = 0;
     let everConnected = false;
 
-    function connect() {
-      if (cancelled || attempts >= MAX_CONNECT_ATTEMPTS) {
+    function connect(fast = false) {
+      if (cancelled) {
         return;
       }
-      attempts += 1;
+      if (!fast && attempts >= MAX_CONNECT_ATTEMPTS) {
+        return;
+      }
+      if (!fast) {
+        attempts += 1;
+      }
       const ws = new WebSocket(getWsUrl(roomId));
       wsRef.current = ws;
 
@@ -43,13 +48,20 @@ export function useRoomSocket(roomId: string | undefined, enabled: boolean) {
         if (!everConnected && attempts >= 3) {
           return;
         }
-        window.setTimeout(connect, retryMs);
-        retryMs = Math.min(retryMs * 2, 15_000);
+        const delay = fast ? 250 : retryMs;
+        window.setTimeout(() => connect(false), delay);
+        if (!fast) {
+          retryMs = Math.min(retryMs * 2, 15_000);
+        }
       };
 
       ws.onmessage = (ev) => {
         try {
           const data = JSON.parse(ev.data as string) as RealtimeEvent;
+          if (data.type === "room.closed") {
+            everConnected = false;
+            attempts = MAX_CONNECT_ATTEMPTS;
+          }
           setLastEvent(data);
         } catch {
           /* ignore */
@@ -57,10 +69,30 @@ export function useRoomSocket(roomId: string | undefined, enabled: boolean) {
       };
     }
 
-    connect();
+    function fastReconnect() {
+      const existing = wsRef.current;
+      if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
+      connect(true);
+    }
+
+    connect(false);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        fastReconnect();
+      }
+    };
+    const onOnline = () => fastReconnect();
+
+    window.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
       const ws = wsRef.current;
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close(1000, "navigate_away");

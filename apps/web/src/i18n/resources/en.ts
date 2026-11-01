@@ -29,6 +29,7 @@ export const en = {
     mySpace: "My space",
     mySpaceCreate: "My space / Create room",
     createRoom: "Create room",
+    changelog: "Changelog",
     changeName: "Change name",
     signingOut: "Signing out…",
     guest: "Guest",
@@ -64,7 +65,17 @@ export const en = {
     home: "Your group on the same wavelength",
     dashboard: "Your space",
     rooms: "Explore public rooms",
+    changelog: "Changelog",
     notFound: "Page not found",
+  },
+  changelog: {
+    title: "V0x Live changelog",
+    description: "Fixes, improvements, and security — what changed in each release.",
+    section: {
+      fix: "Fixes",
+      improvement: "Improvements",
+      security: "Security",
+    },
   },
   landing: {
     hero: {

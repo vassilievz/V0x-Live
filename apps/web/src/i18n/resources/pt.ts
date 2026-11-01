@@ -28,6 +28,7 @@ export const pt = {
     mySpace: "Meu espaço",
     mySpaceCreate: "Meu espaço / Criar sala",
     createRoom: "Criar sala",
+    changelog: "Novidades",
     changeName: "Trocar nome",
     signingOut: "Saindo…",
     guest: "Visitante",
@@ -63,7 +64,18 @@ export const pt = {
     home: "Seu grupo na mesma frequência",
     dashboard: "Seu espaço",
     rooms: "Explore salas públicas",
+    changelog: "Novidades",
     notFound: "Página não encontrada",
+  },
+  changelog: {
+    title: "Novidades do V0x Live",
+    description:
+      "Correções, melhorias e segurança — o que mudou em cada atualização.",
+    section: {
+      fix: "Correções",
+      improvement: "Melhorias",
+      security: "Segurança",
+    },
   },
   landing: {
     hero: {

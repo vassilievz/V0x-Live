@@ -15,6 +15,8 @@ import { useSessionUser } from "@/hooks/useSessionUser";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
 import { useRoomPageUnloadLeave } from "@/hooks/useRoomPageUnloadLeave";
 import { LiveKitStage } from "@/features/streaming/components/LiveKitStage";
+import { RoomMediaUiProvider } from "@/features/streaming/RoomMediaUiContext";
+import { useWakeLock } from "@/hooks/useWakeLock";
 import { RoomDirectVideoProvider } from "@/features/room-music/RoomDirectVideoContext";
 import { RoomCineProvider } from "@/features/room-cine/RoomCineContext";
 import { ChatPanel } from "@/features/chat/components/ChatPanel";
@@ -27,8 +29,12 @@ import { RoomStageShell } from "@/features/rooms/components/RoomStageShell";
 import {
   mayAutoJoinRoomEntry,
   needsNickEntryGate,
-  needsRoomInviteGate,
-} from "@/features/rooms/roomEntryPolicy";
+} from "@/features/rooms/roomNickGate";
+import { needsRoomInviteGate } from "@/features/rooms/roomEntryPolicy";
+import {
+  navigateAfterRoomClosedByHost,
+  clearRoomLiveQueries,
+} from "@/features/rooms/roomExitNavigation";
 import {
   actionLink,
   actionLinkPill,
@@ -56,23 +62,27 @@ export function RoomPage() {
   const [mobilePanel, setMobilePanel] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
+  const [closeRoomError, setCloseRoomError] = useState<string | null>(null);
+  const [entryLoadTimedOut, setEntryLoadTimedOut] = useState(false);
+  const [roomEnded, setRoomEnded] = useState(false);
   const autoJoinDone = useRef(false);
   const prejoinApplied = useRef(false);
   const joinedRef = useRef(false);
 
-  const session = useSessionUser({ bootstrapGuest: true });
+  const session = useSessionUser({ bootstrapGuest: false });
 
   const entry = useQuery({
     queryKey: ["room-entry", roomId],
     queryFn: () => roomsApi.entry(roomId!),
-    enabled: Boolean(roomId) && session.isFetched,
+    enabled: Boolean(roomId) && session.isSuccess,
     staleTime: 0,
+    retry: false,
   });
 
   const roomMeta = useQuery({
     queryKey: ["room-preview-public", roomId],
     queryFn: () => roomsApi.preview(roomId!),
-    enabled: Boolean(roomId) && entry.data?.visibility === "public",
+    enabled: Boolean(roomId),
     staleTime: 60_000,
     retry: false,
   });
@@ -109,6 +119,7 @@ export function RoomPage() {
     setJoined(false);
     joinedRef.current = false;
     setRole(null);
+    setRoomEnded(false);
     resetJoin();
   }, [roomId, resetJoin]);
 
@@ -162,8 +173,15 @@ export function RoomPage() {
     livekit.data ??
     cachedLivekit ??
     (join.data?.livekit
-      ? { token: join.data.livekit.token, url: join.data.livekit.url }
+      ? {
+          token: join.data.livekit.token,
+          url: join.data.livekit.url,
+          room_name: join.data.livekit.room_name,
+          identity: join.data.livekit.identity,
+        }
       : undefined);
+
+  useWakeLock(Boolean(roomId && joined));
 
   const hostRoomDetails = useQuery({
     queryKey: ["room", roomId, "host-details"],
@@ -172,7 +190,7 @@ export function RoomPage() {
     staleTime: 60_000,
   });
 
-  const { connected, lastEvent } = useRoomSocket(roomId, joined);
+  const { connected, lastEvent } = useRoomSocket(roomId, joined && !roomEnded);
   useRoomPageUnloadLeave(roomId, joined);
 
   useEffect(() => {
@@ -216,7 +234,21 @@ export function RoomPage() {
 
   const closeRoom = useMutation({
     mutationFn: () => roomsApi.close(roomId!),
-    onSuccess: () => navigate("/dashboard"),
+    onSuccess: () => {
+      setCloseRoomError(null);
+      setRoomEnded(true);
+      setJoined(false);
+      joinedRef.current = false;
+      void queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      if (roomId) {
+        navigateAfterRoomClosedByHost(navigate, queryClient, roomId);
+      }
+    },
+    onError: (err) => {
+      setCloseRoomError(
+        err instanceof ApiError ? err.message : t("errors.generic"),
+      );
+    },
   });
 
   useEffect(() => {
@@ -224,42 +256,62 @@ export function RoomPage() {
   }, [entryInfo?.name, roomMeta.data?.name, t, i18n.language]);
 
   useEffect(() => {
-    if (lastEvent?.type !== "room.closed") {
+    if (lastEvent?.type !== "room.closed" || !roomId) {
       return;
     }
+    setRoomEnded(true);
     setJoined(false);
-    navigate("/dashboard", { replace: true });
-  }, [lastEvent, navigate]);
+    joinedRef.current = false;
+    soundEffects.playLeave();
+    navigateAfterRoomClosedByHost(navigate, queryClient, roomId);
+  }, [lastEvent, navigate, queryClient, roomId]);
+
+  useEffect(() => {
+    if (!roomId || !session.isFetched || joined || !hasSession) {
+      setEntryLoadTimedOut(false);
+      return;
+    }
+    const needsNick = needsNickEntryGate(entryInfo, session.data, hasSession);
+    const invite = entryInfo ? needsRoomInviteGate(entryInfo) : false;
+    const pass =
+      entryInfo?.password_required ?? roomMeta.data?.password_required ?? false;
+    if (needsNick || invite || pass) {
+      setEntryLoadTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setEntryLoadTimedOut(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [
+    roomId,
+    session.isFetched,
+    session.data,
+    hasSession,
+    joined,
+    entryInfo,
+    roomMeta.data?.password_required,
+    entry.isPending,
+    entry.isFetching,
+  ]);
 
   if (!roomId) {
     return null;
   }
 
   const roomName = entryInfo?.name ?? roomMeta.data?.name ?? t("room.defaultName");
-  const isPublicRoom = entryInfo?.visibility === "public";
-  const metaReady =
-    !isPublicRoom ||
-    Boolean(entryInfo) ||
-    Boolean(roomMeta.data) ||
-    roomMeta.isError;
-  const entryReady = session.isFetched;
-  const waitingSession = !joined && !entryReady;
   const needsInviteGate = entryInfo ? needsRoomInviteGate(entryInfo) : false;
-  const needsNickGate = entryInfo
-    ? needsNickEntryGate(entryInfo, session.data, hasSession)
-    : !hasSession && metaReady && !roomMeta.isError;
+  const needsNickGate = needsNickEntryGate(entryInfo, session.data, hasSession);
+  const passwordRequired =
+    entryInfo?.password_required ?? roomMeta.data?.password_required ?? false;
 
   const showGate =
     !joined &&
     !join.isPending &&
-    !waitingSession &&
-    (needsNickGate ||
-      needsInviteGate ||
-      (entryInfo?.password_required ?? roomMeta.data?.password_required) === true);
+    session.isFetched &&
+    (needsNickGate || needsInviteGate || passwordRequired);
 
   const showStage = joined || join.isPending || join.isError;
 
-  if (waitingSession && !joined) {
+  if (!session.isFetched) {
     return <RoomEntryLoading />;
   }
 
@@ -283,7 +335,7 @@ export function RoomPage() {
       <RoomAccessGate
         roomId={roomId}
         roomName={roomName}
-        passwordRequired={entryInfo?.password_required ?? roomMeta.data?.password_required ?? false}
+        passwordRequired={passwordRequired}
         inviteCodeRequired={needsInviteGate}
         hasSession={hasSession}
         sessionUser={session.data}
@@ -295,7 +347,32 @@ export function RoomPage() {
     );
   }
 
-  if (!showStage) {
+  if (!showStage && !showGate) {
+    if (entry.isError || entryLoadTimedOut) {
+      return (
+        <SiteCatalogShell>
+          <section className={cn(homeBentoPanel, sitePanel)}>
+            <span className={homeCellCode}>RL-ENTRY</span>
+            <h1 className={homeSectionTitle}>{t("room.errorTitle")}</h1>
+            <p className="mt-4 max-w-xl text-[0.9375rem] leading-[1.65] text-muted">
+              {entry.error instanceof ApiError
+                ? entry.error.message
+                : t("room.errorBody")}
+            </p>
+            <Button
+              variant="secondary"
+              className="mt-6"
+              onClick={() => {
+                setEntryLoadTimedOut(false);
+                void queryClient.invalidateQueries({ queryKey: ["room-entry", roomId] });
+              }}
+            >
+              {t("room.livekitRetry")}
+            </Button>
+          </section>
+        </SiteCatalogShell>
+      );
+    }
     return (
       <RoomEntryLoading message={join.isPending ? t("room.joining") : t("room.loading")} />
     );
@@ -303,6 +380,7 @@ export function RoomPage() {
 
   return (
     <div className={roomAppRoot}>
+    <RoomMediaUiProvider roomId={roomId}>
     <RoomDirectVideoProvider roomId={roomId} lastEvent={lastEvent} viewerRole={role}>
     <RoomCineProvider roomId={roomId} lastEvent={lastEvent}>
     <RoomStageShell
@@ -330,12 +408,22 @@ export function RoomPage() {
               {join.error.message}
             </p>
           ) : null}
-          {livekitSession ? (
+          {closeRoomError ? (
+            <p className={roomStageAlert} role="alert">
+              {closeRoomError}
+            </p>
+          ) : null}
+          {livekitSession && joined && !roomEnded ? (
             <LiveKitStage
               roomId={roomId}
               token={livekitSession.token}
               serverUrl={livekitSession.url}
               viewerRole={role}
+              onDisconnected={() => {
+                if (roomId) {
+                  clearRoomLiveQueries(queryClient, roomId);
+                }
+              }}
             />
           ) : livekit.isError ? (
             <div className={roomStagePlaceholder} role="status">
@@ -364,6 +452,7 @@ export function RoomPage() {
             roomId={roomId}
             lastEvent={lastEvent}
             viewerRole={role}
+            viewerSessionId={livekitSession?.identity ?? null}
             embedded
             active={joined}
           />
@@ -372,6 +461,7 @@ export function RoomPage() {
     />
     </RoomCineProvider>
     </RoomDirectVideoProvider>
+    </RoomMediaUiProvider>
     </div>
   );
 }

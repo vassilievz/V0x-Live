@@ -239,6 +239,21 @@ func (h *Handler) patch(w http.ResponseWriter, r *http.Request) {
 		}
 		doc.PositionSec = req.PositionSec
 		doc.StateAt = now
+	case "sync":
+		if doc.Mode != ModeDirect {
+			httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Sync só no modo link direto")
+			return
+		}
+		if !doc.Playing {
+			httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Sync só com reprodução ativa")
+			return
+		}
+		if req.PositionSec < 0 {
+			httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Posição inválida")
+			return
+		}
+		doc.PositionSec = req.PositionSec
+		doc.StateAt = now
 	case "prev_episode", "next_episode", "set_episode":
 		if doc.Mode != ModeCatalog || doc.ContentType != ContentSerie {
 			httpx.WriteError(w, http.StatusBadRequest, "validation_error", "Episódios só no modo série")

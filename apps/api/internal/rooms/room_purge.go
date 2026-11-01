@@ -23,6 +23,7 @@ func (s *Service) tryDeleteRoomIfEmpty(ctx context.Context, roomID primitive.Obj
 }
 
 func (s *Service) deleteRoomCascade(ctx context.Context, roomID primitive.ObjectID) error {
+	s.destroyLiveKitRoom(roomID)
 	byRoom := bson.M{"room_id": roomID}
 	if _, err := s.participants.DeleteMany(ctx, byRoom); err != nil {
 		return err

@@ -1,0 +1,39 @@
+{
+  "releases": [
+    {
+      "id": "2026-11-01",
+      "date": "2026-11-01",
+      "title": "Estabilidade em produção, entrada por link e encerramento de sala",
+      "sections": [
+        {
+          "type": "fix",
+          "items": [
+            "Visitante novo abrindo link público (/room/:id) não fica mais preso em \"Carregando…\" — o card de escolha de nick aparece imediatamente, sem depender de /entry ou sessão guest automática.",
+            "Botão \"Encerrar sala\" volta a funcionar para anfitriões guest e logados: autorização via mayCloseRoom (flags de host ou participante host) e erros da API deixam de ser silenciosos no frontend.",
+            "Participantes são expulsos da sala quando o anfitrião encerra: evento WebSocket room.closed, desmontagem do LiveKit, aviso \"A sala foi encerrada pelo anfitrião\" e redirect para /rooms (seguro para visitantes).",
+            "Reconexão infinita do socket da sala após encerramento foi bloqueada ao receber room.closed."
+          ]
+        },
+        {
+          "type": "improvement",
+          "items": [
+            "Preview público da sala (GET /rooms/:id/preview) carrega no card de entrada sem cookie de sessão.",
+            "Timeout de 8s na carga de /entry com botão \"Tentar novamente\" em vez de loading eterno.",
+            "bootstrapGuest desligado na RoomPage para não criar sessão \"Guest\" antes do nick confirmado.",
+            "Lógica needsNickEntryGate reforçada quando /entry ainda não respondeu (guest com nome padrão).",
+            "Redirect pós-encerramento unificado para /rooms com flash de aviso na página Explorar salas.",
+            "Testes Vitest (nick gate, navegação pós-encerramento) e integração Go (preview HTTP sem cookie, guest host pode fechar sala)."
+          ]
+        },
+        {
+          "type": "security",
+          "items": [
+            "Revogação LiveKit: RemoveParticipant em leave, queda de WebSocket (LeaveBySessionID), kick e prune de participantes stale; DeleteRoom no deleteRoomCascade ao encerrar sala.",
+            "CSP do Nginx enxugada: script-src apenas 'self' e https://www.youtube.com; worker-src 'self' blob:.",
+            "Dependência zod removida (CVE alto) — validação segue no backend Go."
+          ]
+        }
+      ]
+    }
+  ]
+}

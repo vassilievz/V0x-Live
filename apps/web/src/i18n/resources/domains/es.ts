@@ -89,6 +89,7 @@ export const domainEs = {
     sortPeople: "Más personas",
     sortRecent: "Más recientes",
     onAir: "En el aire",
+    closedByHostNotice: "El anfitrión cerró esta sala.",
   },
   room: {
     defaultName: "Sala",
@@ -166,6 +167,9 @@ export const domainEs = {
     allowVideo: "Permitir video",
     empty: "Aún no hay más personas en la sala.",
     mediaStatus: "Estado de audio y video",
+    localMute: "Silenciar solo para mí",
+    localUnmute: "Escuchar de nuevo",
+    volumeAria: "Volumen local de {{name}}",
     roles: {
       host: "Anfitrión",
       moderator: "Moderador",
@@ -321,5 +325,13 @@ export const domainEs = {
     bitrateLow: "Bajo (1,5 Mb/s)",
     bitrateMedium: "Medio (2,5 Mb/s)",
     bitrateHigh: "Alto (4 Mb/s)",
+    devicesLead: "Cambia micrófono, salida o cámara sin salir de la sala.",
+    microphoneInput: "Micrófono (entrada)",
+    audioOutput: "Salida de audio",
+    cameraInput: "Cámara (entrada)",
+    deviceDefault: "Predeterminado del sistema",
+    outputUnsupported: "Este navegador no permite elegir auriculares o altavoces.",
+    pushToTalk: "Modo push-to-talk",
+    pushToTalkKey: "Tecla push-to-talk",
   },
 } satisfies DomainResource;

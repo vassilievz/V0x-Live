@@ -89,6 +89,7 @@ export const domainRu = {
     sortPeople: "Больше людей",
     sortRecent: "Недавние",
     onAir: "В эфире",
+    closedByHostNotice: "Ведущий завершил эту комнату.",
   },
   room: {
     defaultName: "Комната",
@@ -166,6 +167,9 @@ export const domainRu = {
     allowVideo: "Разрешить видео",
     empty: "В комнате пока только вы.",
     mediaStatus: "Статус аудио и видео",
+    localMute: "Без звука только у меня",
+    localUnmute: "Снова слышать",
+    volumeAria: "Локальная громкость {{name}}",
     roles: {
       host: "Ведущий",
       moderator: "Модератор",
@@ -320,5 +324,13 @@ export const domainRu = {
     bitrateLow: "Низкий (1,5 Мбит/с)",
     bitrateMedium: "Средний (2,5 Мбит/с)",
     bitrateHigh: "Высокий (4 Мбит/с)",
+    devicesLead: "Смените микрофон, вывод или камеру, не выходя из комнаты.",
+    microphoneInput: "Микрофон (вход)",
+    audioOutput: "Аудиовыход",
+    cameraInput: "Камера (вход)",
+    deviceDefault: "Системный по умолчанию",
+    outputUnsupported: "Этот браузер не позволяет выбрать наушники или колонки.",
+    pushToTalk: "Режим push-to-talk",
+    pushToTalkKey: "Клавиша push-to-talk",
   },
 } satisfies DomainResource;
