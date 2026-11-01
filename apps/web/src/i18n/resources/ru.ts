@@ -71,6 +71,7 @@ export const ru = {
   changelog: {
     title: "Обновления V0x Live",
     description: "Исправления, улучшения и безопасность — что изменилось в каждом релизе.",
+    close: "Закрыть обновления",
     section: {
       fix: "Исправления",
       improvement: "Улучшения",

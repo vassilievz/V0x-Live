@@ -16,9 +16,9 @@ func TestPublicParticipantCountBootstrapVsStale(t *testing.T) {
 	stale := time.Now().UTC().Add(-2 * time.Minute)
 
 	if got := p.PublicParticipantCount(roomID, fresh, 4); got != 4 {
-		t.Fatalf("bootstrap mongo count = %d want 4", got)
+		t.Fatalf("fresh mongo count = %d want 4", got)
 	}
-	if got := p.PublicParticipantCount(roomID, stale, 6); got != 0 {
-		t.Fatalf("stale mongo without ws = %d want 0", got)
+	if got := p.PublicParticipantCount(roomID, stale, 6); got != 6 {
+		t.Fatalf("stale mongo count must be preserved = %d want 6", got)
 	}
 }

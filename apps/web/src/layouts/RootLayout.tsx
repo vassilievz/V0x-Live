@@ -9,11 +9,10 @@ import { useHomeContentLock } from "@/hooks/useHomeContentLock";
 import { cn } from "@/lib/cn";
 import { homeContentLock, roomAppRoot, roomStageOutlet } from "@/ui";
 
-const ROUTE_META_KEYS: Record<string, "home" | "dashboard" | "rooms" | "changelog"> = {
+const ROUTE_META_KEYS: Record<string, "home" | "dashboard" | "rooms"> = {
   "/": "home",
   "/dashboard": "dashboard",
   "/rooms": "rooms",
-  "/changelog": "changelog",
 };
 
 export function RootLayout() {

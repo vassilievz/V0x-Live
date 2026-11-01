@@ -13,7 +13,6 @@ import { soundEffects } from "@/utils/soundEffects";
 import { RoomEntryLoading } from "@/features/rooms/components/RoomEntryLoading";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
-import { useRoomPageUnloadLeave } from "@/hooks/useRoomPageUnloadLeave";
 import { LiveKitStage } from "@/features/streaming/components/LiveKitStage";
 import { RoomMediaUiProvider } from "@/features/streaming/RoomMediaUiContext";
 import { useWakeLock } from "@/hooks/useWakeLock";
@@ -191,7 +190,6 @@ export function RoomPage() {
   });
 
   const { connected, lastEvent } = useRoomSocket(roomId, joined && !roomEnded);
-  useRoomPageUnloadLeave(roomId, joined);
 
   useEffect(() => {
     if (lastEvent?.type !== "room.participant.joined") {
@@ -233,7 +231,16 @@ export function RoomPage() {
   });
 
   const closeRoom = useMutation({
-    mutationFn: () => roomsApi.close(roomId!),
+    mutationFn: async () => {
+      try {
+        await roomsApi.close(roomId!);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          return;
+        }
+        throw err;
+      }
+    },
     onSuccess: () => {
       setCloseRoomError(null);
       setRoomEnded(true);
@@ -245,6 +252,17 @@ export function RoomPage() {
       }
     },
     onError: (err) => {
+      if (err instanceof ApiError && err.status === 404) {
+        setCloseRoomError(null);
+        setRoomEnded(true);
+        setJoined(false);
+        joinedRef.current = false;
+        void queryClient.invalidateQueries({ queryKey: ["rooms"] });
+        if (roomId) {
+          navigateAfterRoomClosedByHost(navigate, queryClient, roomId);
+        }
+        return;
+      }
       setCloseRoomError(
         err instanceof ApiError ? err.message : t("errors.generic"),
       );

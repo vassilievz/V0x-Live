@@ -9,6 +9,7 @@ export type ChangelogRelease = {
   id: string;
   date: string;
   title: string;
+  version?: string;
   sections: ChangelogSection[];
 };
 

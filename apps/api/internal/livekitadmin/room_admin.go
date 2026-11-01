@@ -44,10 +44,15 @@ func apiHost(livekitURL string) string {
 
 // RemoveParticipant disconnects a session from LiveKit (best-effort, async).
 func (a *RoomAdmin) RemoveParticipant(roomName, identity string) {
-	if a.client == nil || roomName == "" || identity == "" {
+	if a == nil || a.client == nil || roomName == "" || identity == "" {
 		return
 	}
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("livekit remove participant recovered panic", "panic", r)
+			}
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), adminTimeout)
 		defer cancel()
 		_, err := a.client.RemoveParticipant(ctx, &livekit.RoomParticipantIdentity{
@@ -62,10 +67,15 @@ func (a *RoomAdmin) RemoveParticipant(roomName, identity string) {
 
 // DeleteRoom tears down the LiveKit room and all tracks (best-effort, async).
 func (a *RoomAdmin) DeleteRoom(roomName string) {
-	if a.client == nil || roomName == "" {
+	if a == nil || a.client == nil || roomName == "" {
 		return
 	}
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("livekit delete room recovered panic", "panic", r)
+			}
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), adminTimeout)
 		defer cancel()
 		_, err := a.client.DeleteRoom(ctx, &livekit.DeleteRoomRequest{Room: roomName})

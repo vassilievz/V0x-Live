@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 import { HeaderAccount } from "@/components/layout/HeaderAccount";
 import { DiscordCommunityLink } from "@/components/layout/DiscordCommunityLink";
 import { LanguageSelector } from "@/components/layout/LanguageSelector";
+import { ChangelogModal } from "@/features/changelog/components/ChangelogModal";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { easeOut } from "@/motion/presets";
 import { cn } from "@/lib/cn";
@@ -25,6 +26,7 @@ import {
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const location = useLocation();
   const reduced = useReducedMotion();
   const session = useSessionUser();
@@ -50,9 +52,16 @@ export function SiteHeader() {
           <NavLink to="/dashboard" className={navLink}>
             {t("nav.mySpace")}
           </NavLink>
-          <NavLink to="/changelog" className={navLink}>
+          <button
+            type="button"
+            className={cn(
+              navLink,
+              "cursor-pointer border-0 bg-transparent font-inherit",
+            )}
+            onClick={() => setChangelogOpen(true)}
+          >
             {t("nav.changelog")}
-          </NavLink>
+          </button>
         </nav>
         <div className={headerActions}>
           <DiscordCommunityLink />
@@ -87,9 +96,16 @@ export function SiteHeader() {
             <NavLink to="/dashboard" onClick={() => setOpen(false)}>
               {t("nav.mySpaceCreate")}
             </NavLink>
-            <NavLink to="/changelog" onClick={() => setOpen(false)}>
+            <button
+              type="button"
+              className="w-full border-0 border-b border-border bg-transparent py-3.5 text-left text-lg font-semibold tracking-[-0.01em] text-muted transition-[color,padding] hover:px-1 hover:text-foreground"
+              onClick={() => {
+                setOpen(false);
+                setChangelogOpen(true);
+              }}
+            >
               {t("nav.changelog")}
-            </NavLink>
+            </button>
             {session.data ? (
               <span className={mobileNavSession}>{session.data.display_name}</span>
             ) : null}
@@ -98,6 +114,7 @@ export function SiteHeader() {
           </motion.nav>
         ) : null}
       </AnimatePresence>
+      <ChangelogModal open={changelogOpen} onClose={() => setChangelogOpen(false)} />
     </header>
   );
 }

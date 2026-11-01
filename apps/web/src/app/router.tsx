@@ -4,7 +4,6 @@ import { RootLayout } from "@/layouts/RootLayout";
 import { LandingPage } from "@/pages/LandingPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { ExploreRoomsPage } from "@/pages/ExploreRoomsPage";
-import { ChangelogPage } from "@/pages/ChangelogPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { RoomPageSuspenseFallback } from "@/components/RoomPageSuspenseFallback";
 
@@ -22,7 +21,6 @@ export function AppRouter() {
         <Route path="profile" element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="rooms" element={<ExploreRoomsPage />} />
-        <Route path="changelog" element={<ChangelogPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

@@ -71,6 +71,7 @@ export const en = {
   changelog: {
     title: "V0x Live changelog",
     description: "Fixes, improvements, and security — what changed in each release.",
+    close: "Close changelog",
     section: {
       fix: "Fixes",
       improvement: "Improvements",

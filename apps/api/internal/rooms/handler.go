@@ -485,6 +485,11 @@ func (h *Handler) closeRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.svc.Close(r.Context(), roomID, sess); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			h.publishRoomClosed(r.Context(), roomID)
+			httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "closed"})
+			return
+		}
 		writeRoomErr(w, err)
 		return
 	}

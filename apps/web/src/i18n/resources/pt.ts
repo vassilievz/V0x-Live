@@ -71,6 +71,7 @@ export const pt = {
     title: "Novidades do V0x Live",
     description:
       "Correções, melhorias e segurança — o que mudou em cada atualização.",
+    close: "Fechar novidades",
     section: {
       fix: "Correções",
       improvement: "Melhorias",

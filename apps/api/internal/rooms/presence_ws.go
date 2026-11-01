@@ -11,8 +11,8 @@ import (
 	"github.com/v0xlive/v0x-live/apps/api/internal/realtime"
 )
 
-const wsDisconnectGrace = 10 * time.Second
-const publicRoomBootstrap = 15 * time.Second
+const wsDisconnectGrace = 60 * time.Second
+const safeParticipantGrace = 2 * time.Minute
 
 type pendingLeave struct {
 	timer *time.Timer
@@ -26,7 +26,7 @@ type RealtimePresence struct {
 	mu      sync.Mutex
 	pending map[string]pendingLeave
 
-	publishLeft  func(ctx context.Context, roomID, sessionID string)
+	publishLeft   func(ctx context.Context, roomID, sessionID string)
 	publishClosed func(ctx context.Context, roomID primitive.ObjectID)
 }
 
@@ -112,15 +112,20 @@ func (p *RealtimePresence) commitLeave(roomID string, sessionID primitive.Object
 	}
 }
 
-// SyncWithHub removes Mongo participants with no live socket (outside grace windows).
+// SyncWithHub safely reconciles MongoDB participants with live sockets.
+// Never removes recently joined participants or rooms younger than safeParticipantGrace (2m).
 func (p *RealtimePresence) SyncWithHub(ctx context.Context) {
 	rooms, err := p.svc.ListActiveRooms(ctx, 300)
 	if err != nil {
 		slog.Warn("ws presence sync: list rooms", "err", err)
 		return
 	}
+	now := time.Now().UTC()
 	for _, room := range rooms {
 		roomHex := room.ID.Hex()
+		if now.Sub(room.CreatedAt) < safeParticipantGrace {
+			continue
+		}
 		connected := p.hub.ConnectedSessionIDs(roomHex)
 		parts, err := p.svc.ListParticipants(ctx, room.ID)
 		if err != nil {
@@ -133,23 +138,25 @@ func (p *RealtimePresence) SyncWithHub(ctx context.Context) {
 			if p.hasPendingLeave(roomHex, part.SessionID) {
 				continue
 			}
-			if time.Since(room.CreatedAt) <= publicRoomBootstrap && len(connected) == 0 {
+			if now.Sub(part.JoinedAt) < safeParticipantGrace {
 				continue
 			}
-			p.commitLeave(roomHex, part.SessionID)
+			p.scheduleLeave(roomHex, part.SessionID)
 		}
 	}
 }
 
+// PublicParticipantCount returns max(live WebSocket sessions, active Mongo participants).
+// Never returns 0 if mongoCount > 0, ensuring open rooms remain visible in Explore.
 func (p *RealtimePresence) PublicParticipantCount(roomID string, roomCreated time.Time, mongoCount int64) int {
-	live := p.hub.UniqueSessions(roomID)
-	if live > 0 {
+	live := 0
+	if p != nil && p.hub != nil {
+		live = p.hub.UniqueSessions(roomID)
+	}
+	if int64(live) > mongoCount {
 		return live
 	}
-	if time.Since(roomCreated) <= publicRoomBootstrap && mongoCount > 0 {
-		return int(mongoCount)
-	}
-	return 0
+	return int(mongoCount)
 }
 
 func (p *RealtimePresence) hasPendingLeave(roomID string, sessionID primitive.ObjectID) bool {
