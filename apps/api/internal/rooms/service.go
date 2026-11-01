@@ -474,7 +474,13 @@ func (s *Service) Close(ctx context.Context, roomID primitive.ObjectID, sess ses
 	if err != nil {
 		return err
 	}
-	_, err = s.tryDeleteRoomIfEmpty(ctx, roomID)
+	s.destroyLiveKitRoom(roomID)
+	_, err = s.rooms.UpdateOne(ctx, bson.M{"_id": roomID}, bson.M{
+		"$set": bson.M{
+			"status":     models.StatusClosed,
+			"updated_at": now,
+		},
+	})
 	return err
 }
 

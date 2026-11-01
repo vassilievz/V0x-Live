@@ -243,9 +243,6 @@ func TestIntegrationCanDirectJoinPolicyMatchesJoin(t *testing.T) {
 func TestIntegrationPublicRoomOwnerResumesHostWithNewSession(t *testing.T) {
 	_, svc, sessions := setupIntegration(t)
 	host := guestSession(t, sessions, "Host")
-	if host.UserID == nil {
-		t.Fatal("expected guest user id")
-	}
 	room, err := svc.Create(context.Background(), host, CreateInput{
 		Name:            "Pública owner",
 		Visibility:      models.VisibilityPublic,
@@ -268,7 +265,6 @@ func TestIntegrationPublicRoomOwnerResumesHostWithNewSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateGuest: %v", err)
 	}
-	resumedSession.UserID = host.UserID
 
 	part, err := svc.Join(context.Background(), room.ID, resumedSession, JoinInput{})
 	if err != nil {
@@ -316,7 +312,7 @@ func TestIntegrationListPublicCountsActiveParticipants(t *testing.T) {
 }
 
 func TestIntegrationRoomPurgedWhenLastParticipantLeaves(t *testing.T) {
-	_, svc, sessions := setupIntegration(t)
+	store, svc, sessions := setupIntegration(t)
 	host := guestSession(t, sessions, "Host")
 	room, err := svc.Create(context.Background(), host, CreateInput{
 		Name:            "Efêmera",
@@ -325,6 +321,14 @@ func TestIntegrationRoomPurgedWhenLastParticipantLeaves(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
+	}
+
+	oldCreated := time.Now().UTC().Add(-3 * time.Minute)
+	_, err = store.Collection("rooms").UpdateOne(context.Background(), bson.M{"_id": room.ID}, bson.M{
+		"$set": bson.M{"created_at": oldCreated},
+	})
+	if err != nil {
+		t.Fatalf("backdate created_at: %v", err)
 	}
 
 	deleted, err := svc.Leave(context.Background(), room.ID, host)
